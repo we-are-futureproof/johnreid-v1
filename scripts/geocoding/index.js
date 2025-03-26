@@ -3,6 +3,8 @@
  * This file orchestrates the geocoding process by combining the functionality
  * from all the specialized modules.
  */
+
+// Geocoding module imports
 import dotenv from 'dotenv';
 import { loadConfig, validateEnv } from './lib/config.js';
 import { RateLimiter } from './lib/rate-limiter.js';
@@ -162,3 +164,4 @@ if (import.meta.url === import.meta.resolve(process.argv[1])) {
       process.exit(1);
     });
 }
+

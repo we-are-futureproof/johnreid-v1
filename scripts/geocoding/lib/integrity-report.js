@@ -14,12 +14,12 @@ const SQL_DIR = path.join(__dirname, '..', 'sql');
  * @returns {Promise<Object>} - Report results
  */
 export async function runIntegrityReport() {
-  console.log(chalk.blue.bold('🔍 Running database integrity checks...'));
+  console.log('Running database integrity checks...');
   
   try {
     // Check if SQL directory exists
     if (!fs.existsSync(SQL_DIR)) {
-      console.error(chalk.red(`Error: SQL directory not found at ${SQL_DIR}`));
+      console.error(`Error: SQL directory not found at ${SQL_DIR}`);
       return { success: false, error: 'SQL_DIR_NOT_FOUND' };
     }
     
@@ -32,11 +32,11 @@ export async function runIntegrityReport() {
       .sort(); // Sort to ensure consistent execution order
     
     if (sqlFiles.length === 0) {
-      console.error(chalk.yellow('Warning: No SQL files found in the sql directory'));
+      console.error('Warning: No SQL files found in the sql directory');
       return { success: false, error: 'NO_SQL_FILES' };
     }
     
-    console.log(chalk.blue(`Found ${sqlFiles.length} SQL integrity check files`));
+    console.log(`Found ${sqlFiles.length} SQL integrity check files`);
     
     // Results object to store report data
     const results = {
@@ -45,172 +45,139 @@ export async function runIntegrityReport() {
       checkResults: []
     };
     
+    // Total issues found
+    let totalIssuesFound = 0;
+    
     // Execute each SQL file
     for (const sqlFile of sqlFiles) {
       const filePath = path.join(SQL_DIR, sqlFile);
       const fileName = path.basename(sqlFile, '.sql');
       const displayName = fileName.replace(/^\d+-/, '').replace(/-/g, ' ');
       
-      console.log(chalk.blue(`\n📋 Running integrity check: ${displayName}`));
+      console.log(`\n---- Running integrity check: ${displayName} ----`);
       
       try {
-        // Read the SQL file
+        // Read the SQL file content
         const sqlContent = fs.readFileSync(filePath, 'utf8');
+        console.log(`SQL content from ${sqlFile}:`);
+        console.log(sqlContent);
         
-        // Split by semicolon to handle multiple queries in one file
-        const queries = sqlContent
-          .split(';')
-          .map(q => q.trim())
-          .filter(q => q.length > 0 && !q.startsWith('--'));
+        // Execute the query directly - keeping it simple
+        console.log(`\nExecuting SQL from ${sqlFile}`);
         
-        // Process each query in the file
-        const queryResults = [];
+        // Execute the SQL query
+        const result = await supabase.rpc('run_sql', { 
+          sql_query: sqlContent 
+        });
         
-        for (const [index, query] of queries.entries()) {
-          // Skip empty queries or comments
-          if (!query.trim() || query.trim().startsWith('--')) continue;
-          
-          // Execute the query
-          console.log(chalk.blue(`Executing query ${index+1}/${queries.length} in ${sqlFile}: ${query}`));
-          const result = await supabase.rpc('run_sql', { sql_query: query });
-          
-          if (result.error) {
-            console.error(chalk.red(`Error executing query ${index + 1} in ${sqlFile}:`), result.error);
-            queryResults.push({
-              success: false,
-              error: result.error.message,
-              query: query
-            });
-            continue;
-          }
-          
-          // Debug the raw response
-          console.log(chalk.blue(`Raw SQL response type:`, typeof result.data));
-          console.log(chalk.blue(`Raw SQL response:`, result.data ? JSON.stringify(result.data).substring(0, 200) + '...' : 'No data'));
-          
-          // Try to extract the data in different ways
-          let processedData;
-          if (Array.isArray(result.data)) {
-            processedData = result.data;
-            console.log(chalk.green(`✅ Data is already an array with ${result.data.length} rows`));
-          } else if (typeof result.data === 'object' && result.data !== null) {
-            // If data is an object, convert to array of objects
-            const entries = Object.entries(result.data);
-            if (entries.length > 0) {
-              console.log(chalk.yellow(`⚠️ Data is an object, attempting to convert to array`));
-              if (Array.isArray(entries[0][1])) {
-                // If first value is an array, use that
-                processedData = entries[0][1];
-                console.log(chalk.green(`✅ Extracted array with ${processedData.length} rows from object property`));
-              } else {
-                // Otherwise create an array with this single object
-                processedData = [result.data];
-                console.log(chalk.yellow(`⚠️ Created single-item array from object`));
-              }
-            } else {
-              processedData = [];
-              console.log(chalk.yellow(`⚠️ Object has no entries, using empty array`));
-            }
-          } else {
-            processedData = [];
-            console.log(chalk.red(`❌ Could not process data of type ${typeof result.data}`));
-          }
-          
-          // Process results with the extracted data
-          const resultCount = processedData ? processedData.length : 0;
-          
-          // Skip displaying full data for large result sets
-          let displayData = processedData;
-          if (resultCount > 10) {
-            displayData = processedData.slice(0, 10);
-            if (isInformational) {
-              console.log(chalk.blue(`ℹ️ Query returned ${resultCount} rows. Showing first 10:`));
-            } else {
-              console.log(chalk.yellow(`⚠️ Query returned ${resultCount} rows. Showing first 10:`));
-            }
-          } else if (resultCount === 0) {
-            if (!isInformational) {
-              console.log(chalk.green('✅ No issues found (query returned 0 rows)'));
-            } else {
-              console.log(chalk.blue('ℹ️ No data returned'));
-            }
-          } else {
-            if (isInformational) {
-              console.log(chalk.blue(`ℹ️ Found ${resultCount} informational rows`));
-            } else {
-              console.log(chalk.yellow(`⚠️ Found ${resultCount} potential issues!`));
-            }
-          }
-          
-          // Display results in a formatted way
-          if (displayData && displayData.length > 0) {
-            console.log('Sample of results:');
-            console.table(displayData.slice(0, 3));
-            console.log(chalk.yellow(`First result: ${JSON.stringify(displayData[0])}`));
-          }
-          
-          queryResults.push({
-            success: true,
-            rowCount: resultCount,
-            data: processedData
+        // Log any errors from the query execution
+        if (result.error) {
+          console.error(`Error executing SQL in ${sqlFile}:`, result.error);
+          results.checkResults.push({
+            name: displayName,
+            file: sqlFile,
+            success: false,
+            error: result.error.message
           });
+          continue;
+        }
+        
+        // Log the raw result for debugging
+        console.log(`\nRAW RESULT from ${sqlFile}:`);
+        console.log('Result data type:', typeof result.data);
+        console.log('Is array:', Array.isArray(result.data));
+        console.log('Full raw data:', JSON.stringify(result.data, null, 2));
+        
+        // Handle the data based on its type
+        let rowData = [];
+        
+        if (Array.isArray(result.data)) {
+          rowData = result.data;
+          console.log(`Data is already an array with ${rowData.length} rows`);
+        } else if (typeof result.data === 'object' && result.data !== null) {
+          console.log('Raw object data:', result.data);
           
-          // Mark that this check found issues
-          if (resultCount > 0) {
-            console.log(chalk.yellow(`\u26a0\ufe0f Marked ${resultCount} issues for file ${sqlFile}`));
+          // Check if any property is an array we can use
+          const arrayProps = Object.entries(result.data)
+            .filter(([key, value]) => Array.isArray(value));
+            
+          if (arrayProps.length > 0) {
+            rowData = arrayProps[0][1]; // Use the first array property
+            console.log(`Using array from property '${arrayProps[0][0]}' with ${rowData.length} rows`);
+          } else {
+            // Just wrap the object in an array
+            rowData = [result.data];
+            console.log('Wrapping single object in array');
           }
         }
         
-        // Add to overall results
+        // Log row count
+        const rowCount = rowData.length;
+        console.log(`Query returned ${rowCount} rows`);
+        
+        // If we have rows, show some sample data
+        if (rowCount > 0) {
+          console.log('Sample data:');
+          console.log(JSON.stringify(rowData.slice(0, 3), null, 2));
+          
+          // Always count non-empty results as issues except for specific informational queries
+          const isInformational = sqlFile.includes('recent-results') || 
+                                 sqlFile.includes('processing-status');
+                                 
+          if (!isInformational) {
+            totalIssuesFound += rowCount;
+            console.log(`FOUND ${rowCount} ISSUES in ${sqlFile}`);
+          } else {
+            console.log(`Found ${rowCount} informational rows in ${sqlFile}`);
+          }
+        }
+        
+        // Add to results
         results.checkResults.push({
           name: displayName,
           file: sqlFile,
-          queryResults
+          success: true,
+          rowCount: rowCount,
+          data: rowData,
+          isInformational: sqlFile.includes('recent-results') || 
+                          sqlFile.includes('processing-status')
         });
         
       } catch (error) {
-        console.error(chalk.red(`Error processing ${sqlFile}:`), error);
+        console.error(`Error processing ${sqlFile}:`, error);
         results.checkResults.push({
           name: displayName,
           file: sqlFile,
-          error: error.message,
-          success: false
+          success: false,
+          error: error.message
         });
       }
     }
     
     // Print summary
-    console.log(chalk.blue.bold('\n📊 Integrity Check Summary'));
+    console.log('\n---- Integrity Check Summary ----');
+    console.log(`Total issues found: ${totalIssuesFound}`);
     
-    // Calculate total issues found
-    let totalIssues = 0;
-    let issueDetails = [];
-    
-    for (const check of results.checkResults) {
-      if (check.queryResults) {
-        for (const query of check.queryResults) {
-          if (query.rowCount && query.rowCount > 0) {
-            totalIssues += query.rowCount;
-            issueDetails.push(`${check.name}: ${query.rowCount} issues`);
-          }
+    if (totalIssuesFound === 0) {
+      console.log('All checks passed! No data integrity issues found.');
+    } else {
+      console.log(`Found ${totalIssuesFound} potential data integrity issues.`);
+      
+      // Show issue details by file
+      for (const check of results.checkResults) {
+        if (check.success && check.rowCount > 0 && !check.isInformational) {
+          console.log(`- ${check.name}: ${check.rowCount} issues`);
         }
       }
     }
     
-    console.log(chalk.blue(`Calculated total issues: ${totalIssues}`));
-    
-    if (totalIssues === 0) {
-      console.log(chalk.green.bold('✅ All checks passed! No data integrity issues found.'));
-    } else {
-      console.log(chalk.yellow.bold(`⚠️ Found ${totalIssues} potential data integrity issues:`));
-      issueDetails.forEach(detail => console.log(chalk.yellow(`- ${detail}`)));
-      console.log(chalk.yellow('Review the detailed output above for more information.'));
-    }
+    // Set success flag based on issues found
+    results.totalIssues = totalIssuesFound;
     
     return results;
     
   } catch (error) {
-    console.error(chalk.red('Error running integrity report:'), error);
+    console.error('Error running integrity report:', error);
     return { success: false, error: error.message };
   }
 }
