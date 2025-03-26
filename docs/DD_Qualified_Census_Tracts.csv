@@ -1,0 +1,8 @@
+Column Name,Column Description
+OBJECTID,OBJECTID
+GEOID,Census Tract ID
+STATE,State FIPS
+COUNTY,County FIPS
+TRACT,Census Tract
+NAME,Census Tract Name
+SHAPE,The characteristic appearance or visible form of a geographic object as represented on a map

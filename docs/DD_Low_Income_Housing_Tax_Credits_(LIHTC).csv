@@ -1,0 +1,130 @@
+Column Name,Column Description
+OBJECTID,"In ArcGIS, a system-managed value that uniquely identifies a record or feature."
+HUD_ID,"Unique Project Identifier for the Database characters 1-3: Allocating agency code (see table below)
+digits 4-7: Year placed in service (0000 or 0001 if unknown or missing)
+digits 8-10: Record number within allocating agency and year placed in service"
+PROJECT,Project name
+PROJ_ADD,Project street address
+PROJ_CTY,Project city
+PROJ_ST,Project state
+PROJ_ZIP,Project zip
+STATE_ID,State-defined Project ID
+COMPANY,Name of contact company
+CO_ADD,Contact's business address
+CO_CTY,Contact's city
+CO_ST,Contact's state
+CO_ZIP,Contact's zip
+CO_TEL,Contact's telephone
+ALLOCAMT,Annual dollar amount of tax credits allocated
+N_UNITS,Total number of units
+LI_UNITS,Total number of low income units
+N_0BR,Number of efficiencies
+N_1BR,Number of 1 bedroom units
+N_2BR,Number of 2 bedroom units
+N_3BR,Number of 3 bedroom units
+N_4BR,Number of 4 bedroom units
+INC_CEIL,Elected rent/income ceiling for low income units
+LOW_CEIL,Units set aside with rents lower than elected rent/income ceiling
+CEILUNIT,Number of units set aside with rents lower than elected rent/income ceiling
+YR_PIS,Year placed in service
+YR_ALLOC,Allocation year
+NON_PROF,Non-profit sponsor
+BASIS,Increase in eligible basis
+BOND,Tax-exempt bond received
+MFF_RA,HUD Multi-Family financing/rental assistance
+MFF_RA_ID,HUD Multi-Family financing/rental assistance Property ID
+FMHA_514,FmHA (RHS) Section 514 loan
+RDNUM_514,FmHA (RHS) Section 514 loan number
+FMHA_515,FmHA (RHS) Section 515 loan
+RDNUM_515,FmHA (RHS) Section 515 loan number
+FMHA_538,FmHA (RHS) Section 538 loan
+RDNUM_538,FmHA (RHS) Section 538 loan number
+HOME,HOME Investment Partnership Program funds
+HOME_AMT,HOME Investment Partnership Program funds
+HOME_IDISI,HOME Investment Partnership Program funds IDIS ID
+TCAP,Tax Credit Assistance Program (TCAP) funds
+TCAP_AMT,TCAP Amount
+TCAP_IDISI,TCAP ISIS ID
+CDBG,Community Development Block Grant funds
+CDBG_AMT,Dollar amount of CDBG funds
+CDBG_IDISI,Community Development Block Grant (CDBG) funds IDIS ID
+FHA,FHA-insured loan
+FHA_NUM,FHA loan number
+HOPEVI,Forms part of a HOPEVI development
+HPVI_AMT,Dollar amount of HOPEVI funds for development or building costs
+TCEP,TCEP Funds
+TCEP_AMT,TCEP Amount
+RENTASSIST,Federal or state project-based rental assistance contract
+TRGT_POP,Targets a specific population with specialized services or facilities
+TRGT_FAM,Targets a specific population – families
+TRGT_ELD,Targets a specific population – elderly
+TRGT_DIS,Targets a specific population – disabled
+TRGT_HML,Targets a specific population – homeless
+TRGT_OTHER,Targets a specific population – other
+TRGT_SPC,Targets a specific population – other as specified
+TYPE,Type of construction
+CREDIT,Type of credit percentage
+N_UNITSR,"Total number of units or if total units missing or inconsistent, total low income units"
+LI_UNITR,"Total number of low income units or if total low income units missing, total units"
+DDA,Is the census tract in a difficult development area?(DDA status is based on placed in service year.)
+QCT,"Is the census tract a qualified census tract? (For projects placed in service prior to 2003, QCT is based on 1990 Census tract.  For projects placed in service since 2003, QCT is based on 2000 Census tract.)"
+NONPROG,No longer monitored for LIHTC program due to expired use or other reason (Status of no longer being monitored  for the LIHTC Program is indicated for projects as specified by the allocating  agency. This does not indicate whether or not a project remains affordable to low income populations.)
+DATANOTE,Notes about data record changes processed for database update.
+METRO_TRACT,Type of construction
+STATE2KX,Census 2010 FIPS State Code
+CNTY2KX,Census 2010 FIPS County Code
+TRACT2KX,Census 2010 Tract
+BG2KX,Census 2010 Block Group
+BLOCK2KX,Census 2010 Block ID
+CURCNTY_NM,Current FIPS County Name
+CURCNTY,Current FIPS County Code
+CURCOSUB,Current County Subdivision Code (MCD/CC
+CURCOSUB_NM,Current County Subdivision Name (MCD/CC
+PLACE2KX,FIPS Place Code
+PLACE_NM2KX,FIPS Place name
+PLACE_CC2KX,FIPS Place Class Code
+PLACE_INC2KX,FIPS Place Incorporated Flag
+MSA,Metropolitan Statistical Area Code
+MSA_NM,MSA/PMSA Name
+CBSA,Core Based Statistical Area
+CBSA_NM,"Core Based Statistical Area, Lowest Level N"
+NECTA,"New England City and Town Area, Lowest Le"
+NECTA_NM,NECTA Lowest Level Name
+METRO,CBSA Metropolitan Area Indicator
+MICRO,CBSA Micropolitan Area Indicator
+FCD_FIPS91,Federal Congressional District (FIPS 9.1 std.)
+HLC,HUD Locality Code
+DPVRC,DPV Return Code
+DPV,Delivery Point Validation(DPV) Indicator
+STD_ADDR,USPS Standardized Address
+URB_OUT,Puerto Rico Urbanization Name
+STD_CITY,USPS Standardized City Name
+STD_ST,USPS Standardized State Abbreviation
+STD_ZIP5,USPS Standardized ZIP Code
+STD_ZIP9,USPS Standardized ZIP+4 Code
+ZIP_CLASS,Type of Zip Code
+ZCTA2KX,Census 2010 Zip Code Tabulation Area
+DPBC,Delivery Point Bar Code
+DPBC_CKSUM,"Delivery Point Bar Code, Check Digit"
+STD_ZIP11,Postnet Bar Code
+ADDR_TYPE,"USPS Address Type """" - no match, ""S"" - House/Street match, ""H"" - Highrise, ""P"" - PO Box, ""G"" - General Delivery, ""R"" - Rural Route/Highway Contract"
+APT_TYPE,"Apartment Type; Contains the secondary address type abbreviation (Apt = Apartment, Ste = Suite, # = Apartment, RM = Room, FL = Floor, etc..)"
+C1PGRC,General Return Code
+C1PPRB,Address Match Probability
+C1PDRC,Directional Return Code
+C1PSRC,Suffix Return Code
+C1PARC,Apartment Return Code
+C1PRC9,ZIP Return Code
+MSGUSPS,Postal Matcher Status Message
+LAT,Latitude (decimal)
+LON,Longitude (decimal)
+RC2KX,Census 2010 Geocoder General Return Code
+STM2KX,Census 2010 Geocoder Street Matcher Return Code
+LVL2KX,Census 2010 Geocoder Lat/Long Geocoding Return Code
+UR,Urban/Rural Indicator
+MSG2KX,Census 2010 Geocoder Lat/Long Level Status
+COUNTY_LEVEL,5 character combination of state and county FIPS codes
+PLACE_LEVEL,"7 characters.  For CDBG Entitlement Cities, this is the CDBG ID.  For Urban Counties and State Nonentitlement Areas, is a concatenation of state and place FIPS codes"
+TRACT_LEVEL,"11 character combination of state, county, and Census Tract codes"
+BLKGRP_LEVEL,"12 character combination of State, county, tract, and block group"
+SHAPE,The characteristic appearance or visible form of a geographic object as represented on a map

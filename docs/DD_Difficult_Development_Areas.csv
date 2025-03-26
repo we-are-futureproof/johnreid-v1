@@ -1,0 +1,6 @@
+Column Name,Column Description
+OBJECTID,"In ArcGIS, a system-managed value that uniquely identifies a record or feature."
+ZCTA5,Census 2010 ZIP Code Tabulation Area code
+DDA_CODE,State FIPS Code + County FIPS Code (if non-metro) or HUD Fair Market Rent (FMR) Metropolitan Area (HFMA) code (if small-area)
+DDA_NAME,County Name (if non-metro) or HFMA Name (if small area)
+DDA_TYPE,"Type of DDA; NM for non-metro, SA for small area"

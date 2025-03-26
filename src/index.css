@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the map application */
+.mapboxgl-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Custom layer styling */
+.map-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+/* Custom control panel */
+.control-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  max-width: 320px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1;
+}
+
+/* Custom marker styles */
+.umc-marker {
+  background-color: #4338ca;
+  border-radius: 50%;
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Custom popup styles */
+.mapboxgl-popup-content {
+  padding: 15px;
+  border-radius: 8px;
+}
