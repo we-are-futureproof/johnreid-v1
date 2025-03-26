@@ -4,4 +4,4 @@ SELECT gcfa, name,
        details->>'geocoding_timestamp' AS completion_time
 FROM umc_locations
 WHERE details->>'last_geocoding_attempt' IS NOT NULL 
-  AND details->>'geocoding_timestamp' IS NULL;
+  AND details->>'geocoding_timestamp' IS NULL

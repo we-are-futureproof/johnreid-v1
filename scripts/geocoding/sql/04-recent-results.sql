@@ -4,4 +4,4 @@ SELECT gcfa, name, latitude, longitude, geocoded_address,
 FROM umc_locations
 WHERE details->>'geocoding_timestamp' IS NOT NULL
 ORDER BY (details->>'geocoding_timestamp')::timestamp DESC
-LIMIT 50;
+LIMIT 50

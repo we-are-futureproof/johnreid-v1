@@ -5,4 +5,4 @@ SELECT
   COUNT(*) FILTER (WHERE details->>'geocoding_failures' IS NOT NULL) AS failed_attempts,
   COUNT(*) FILTER (WHERE latitude IS NULL AND longitude IS NULL AND skip_geocoding = false) AS pending,
   COUNT(*) AS total
-FROM umc_locations;
+FROM umc_locations

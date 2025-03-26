@@ -71,42 +71,94 @@ export async function runIntegrityReport() {
           if (!query.trim() || query.trim().startsWith('--')) continue;
           
           // Execute the query
-          const { data, error, count } = await supabase.rpc('run_sql', { sql_query: query });
+          console.log(chalk.blue(`Executing query ${index+1}/${queries.length} in ${sqlFile}: ${query}`));
+          const result = await supabase.rpc('run_sql', { sql_query: query });
           
-          if (error) {
-            console.error(chalk.red(`Error executing query ${index + 1} in ${sqlFile}:`), error);
+          if (result.error) {
+            console.error(chalk.red(`Error executing query ${index + 1} in ${sqlFile}:`), result.error);
             queryResults.push({
               success: false,
-              error: error.message,
+              error: result.error.message,
               query: query
             });
             continue;
           }
           
-          // Process results
-          const resultCount = data ? data.length : 0;
+          // Debug the raw response
+          console.log(chalk.blue(`Raw SQL response type:`, typeof result.data));
+          console.log(chalk.blue(`Raw SQL response:`, result.data ? JSON.stringify(result.data).substring(0, 200) + '...' : 'No data'));
+          
+          // Try to extract the data in different ways
+          let processedData;
+          if (Array.isArray(result.data)) {
+            processedData = result.data;
+            console.log(chalk.green(`✅ Data is already an array with ${result.data.length} rows`));
+          } else if (typeof result.data === 'object' && result.data !== null) {
+            // If data is an object, convert to array of objects
+            const entries = Object.entries(result.data);
+            if (entries.length > 0) {
+              console.log(chalk.yellow(`⚠️ Data is an object, attempting to convert to array`));
+              if (Array.isArray(entries[0][1])) {
+                // If first value is an array, use that
+                processedData = entries[0][1];
+                console.log(chalk.green(`✅ Extracted array with ${processedData.length} rows from object property`));
+              } else {
+                // Otherwise create an array with this single object
+                processedData = [result.data];
+                console.log(chalk.yellow(`⚠️ Created single-item array from object`));
+              }
+            } else {
+              processedData = [];
+              console.log(chalk.yellow(`⚠️ Object has no entries, using empty array`));
+            }
+          } else {
+            processedData = [];
+            console.log(chalk.red(`❌ Could not process data of type ${typeof result.data}`));
+          }
+          
+          // Process results with the extracted data
+          const resultCount = processedData ? processedData.length : 0;
           
           // Skip displaying full data for large result sets
-          let displayData = data;
+          let displayData = processedData;
           if (resultCount > 10) {
-            displayData = data.slice(0, 10);
-            console.log(chalk.yellow(`Query returned ${resultCount} rows. Showing first 10:`));
+            displayData = processedData.slice(0, 10);
+            if (isInformational) {
+              console.log(chalk.blue(`ℹ️ Query returned ${resultCount} rows. Showing first 10:`));
+            } else {
+              console.log(chalk.yellow(`⚠️ Query returned ${resultCount} rows. Showing first 10:`));
+            }
           } else if (resultCount === 0) {
-            console.log(chalk.green('✅ No issues found (query returned 0 rows)'));
+            if (!isInformational) {
+              console.log(chalk.green('✅ No issues found (query returned 0 rows)'));
+            } else {
+              console.log(chalk.blue('ℹ️ No data returned'));
+            }
           } else {
-            console.log(chalk.yellow(`Found ${resultCount} potential issues:`));
+            if (isInformational) {
+              console.log(chalk.blue(`ℹ️ Found ${resultCount} informational rows`));
+            } else {
+              console.log(chalk.yellow(`⚠️ Found ${resultCount} potential issues!`));
+            }
           }
           
           // Display results in a formatted way
           if (displayData && displayData.length > 0) {
-            console.table(displayData);
+            console.log('Sample of results:');
+            console.table(displayData.slice(0, 3));
+            console.log(chalk.yellow(`First result: ${JSON.stringify(displayData[0])}`));
           }
           
           queryResults.push({
             success: true,
             rowCount: resultCount,
-            data: data
+            data: processedData
           });
+          
+          // Mark that this check found issues
+          if (resultCount > 0) {
+            console.log(chalk.yellow(`\u26a0\ufe0f Marked ${resultCount} issues for file ${sqlFile}`));
+          }
         }
         
         // Add to overall results
@@ -129,16 +181,30 @@ export async function runIntegrityReport() {
     
     // Print summary
     console.log(chalk.blue.bold('\n📊 Integrity Check Summary'));
-    const issueCount = results.checkResults.reduce((count, check) => {
-      const rowCounts = check.queryResults?.map(q => q.rowCount || 0) || [0];
-      return count + rowCounts.reduce((sum, c) => sum + c, 0);
-    }, 0);
     
-    if (issueCount === 0) {
+    // Calculate total issues found
+    let totalIssues = 0;
+    let issueDetails = [];
+    
+    for (const check of results.checkResults) {
+      if (check.queryResults) {
+        for (const query of check.queryResults) {
+          if (query.rowCount && query.rowCount > 0) {
+            totalIssues += query.rowCount;
+            issueDetails.push(`${check.name}: ${query.rowCount} issues`);
+          }
+        }
+      }
+    }
+    
+    console.log(chalk.blue(`Calculated total issues: ${totalIssues}`));
+    
+    if (totalIssues === 0) {
       console.log(chalk.green.bold('✅ All checks passed! No data integrity issues found.'));
     } else {
-      console.log(chalk.yellow(`⚠️ Found ${issueCount} potential data integrity issues.`));
-      console.log('Review the detailed output above for more information.');
+      console.log(chalk.yellow.bold(`⚠️ Found ${totalIssues} potential data integrity issues:`));
+      issueDetails.forEach(detail => console.log(chalk.yellow(`- ${detail}`)));
+      console.log(chalk.yellow('Review the detailed output above for more information.'));
     }
     
     return results;
