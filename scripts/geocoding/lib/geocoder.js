@@ -47,7 +47,20 @@ export class Geocoder {
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error(`Mapbox API error: ${response.status} ${response.statusText}`);
+          const status = response.status;
+          
+          // Special handling for 422 errors (Unprocessable Entity) - typically for invalid addresses
+          if (status === 422) {
+            return {
+              error: true,
+              error_type: 'invalid_address_format',
+              message: 'Address format could not be processed by geocoding API',
+              full_address: fullAddress,
+              status_code: status
+            };
+          }
+          
+          throw new Error(`Mapbox API error: ${status} ${response.statusText}`);
         }
         
         const data = await response.json();

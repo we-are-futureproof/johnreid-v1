@@ -77,8 +77,41 @@ export async function processBatch(locations, geocoder, config, batchNum, totalB
         location.state
       );
       
+      // Check for special error types returned by geocoder
+      if (geocodingResults && geocodingResults.error) {
+        const timestamp = new Date().toISOString();
+        let errorMsg;
+        
+        if (geocodingResults.error_type === 'invalid_address_format') {
+          // Handle invalid address format errors (422 errors from Mapbox)
+          errorMsg = `[${timestamp}] INVALID ADDRESS FORMAT: Location ${location.gcfa} (${location.name})
+  Status: ${geocodingResults.status_code} - ${geocodingResults.message}
+  Address: ${geocodingResults.full_address}`;
+          console.error(errorMsg);
+          batchResults.errors.push(errorMsg);
+          batchResults.failed++;
+          result.error = 'invalid_address_format';
+          
+          // Mark as requiring manual review rather than continuing to retry
+          await db.markLocationToSkip(location.gcfa, 'invalid_address_format', {
+            status_code: geocodingResults.status_code,
+            message: geocodingResults.message,
+            address: geocodingResults.full_address
+          });
+          console.log(`Marked location ${location.gcfa} to be manually reviewed due to invalid address format`);
+        } else {
+          // Handle other error types
+          errorMsg = `[${timestamp}] GEOCODING ERROR: ${geocodingResults.error_type} for ${location.name} (${location.gcfa})
+  Message: ${geocodingResults.message}
+  Address: ${location.address}, ${location.city}, ${location.state}`;
+          console.error(errorMsg);
+          batchResults.errors.push(errorMsg);
+          batchResults.failed++;
+          result.error = geocodingResults.error_type;
+        }
+      }
       // Process successful geocoding
-      if (geocodingResults && geocodingResults.latitude && geocodingResults.longitude) {
+      else if (geocodingResults && geocodingResults.latitude && geocodingResults.longitude) {
         // Check if this is a low confidence result
         if (geocodingResults.low_confidence) {
           // Log the low relevance result but still save it
