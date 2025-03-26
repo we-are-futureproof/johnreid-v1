@@ -1,9 +1,7 @@
-# Geocoding Configuration
-
 # Process limits
 processing:
   # Maximum number of records to process in a single run (0 = no limit)
-  max_records: 0
+  max_records: 100
   # Size of each processing batch
   batch_size: 20 
   # Number of concurrent batches to process
@@ -19,11 +17,11 @@ geocoding:
   # Number of consecutive failures before marking a record to skip
   max_failures: 3
   # Minimum acceptable relevance score (0.0 - 1.0)
-  min_relevance: 0.5
+  min_relevance: 0.3 # Lower threshold to allow more addresses to be geocoded
 
 # Database query filters
 filters:
   # Only process records for these states (leave empty for all states)
-  states: []
+  states: [] # Process all states
   # Only process records with these statuses (leave empty for all statuses)
   statuses: []

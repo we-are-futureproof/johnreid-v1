@@ -19,12 +19,32 @@ The application accesses these tables through SQL functions that provide filtere
 
 The `umc_locations` table includes the following key fields:
 
-- `gcfa`: Unique identifier for the UMC property
+- `gcfa`: Unique identifier for the UMC property (primary key)
 - `name`: Name of the UMC location
-- `address`, `city`, `state`: Address components
-- `latitude`, `longitude`: Geographic coordinates (when available)
-- `land_area`: Property size in square feet
-- Additional metadata about the property
+- `address`, `city`, `state`: Address components used for geocoding
+- `latitude`, `longitude`: Geographic coordinates (populated by the geocoding process)
+- `geocoding_accuracy`: Numeric score indicating confidence level of the geocoding result
+- `geocoded_at`: Timestamp when geocoding was performed
+- `geocoded_address`: The formatted address returned by the geocoding service
+- `geocoded_postal_code`: Postal code from the geocoding result
+- `details`: JSON field containing church membership and financial information, including:
+  - `attending_members`: Number of attending members
+  - `professing_members`: Number of professing members
+  - `sunday_school`: Sunday school attendance
+  - `mission_participation`: Mission participation metric
+  - `mission_giving`: Mission giving amount
+  - `spending`: Church spending amount
+  - `income`: Church income amount
+- `skip_geocoding`: Boolean flag to mark locations that should be skipped in future geocoding runs
+- `skip_reason`: JSON field indicating why a location was skipped, including:
+  - `reason`: Type of skip reason (e.g., "incomplete_address")
+  - `missing_fields`: Array of missing fields that led to skipping
+  - `provided_data`: Original data that was insufficient
+  - `timestamp`: When the location was marked to be skipped
+- `conference`: The UMC conference the location belongs to
+- `district`: The district within the conference
+- `status`: Current status of the church/property (e.g., "closed", "active")
+- `url`: URL to the church data page on umdata.org
 
 # DATABASE DICTIONARY
 
@@ -130,7 +150,7 @@ interface QualifiedCensusTract {
 
 // Table: umc_locations
 interface UmcLocation {
-  gcfa: number;                // int8, bigint
+  gcfa: number;                // int8, bigint (primary key)
   url: string;                 // text
   name: string;                // text
   conference: string;          // text
@@ -139,7 +159,22 @@ interface UmcLocation {
   state: string;               // text
   status: string;              // text
   address: string;             // text
-  details: any;                // json
+  latitude: number;            // float8, double precision
+  longitude: number;           // float8, double precision
+  land_area: number;           // float8, double precision
+  details: {                   // json
+    geocoding_data?: {
+      source: string;
+      timestamp: string;
+      low_confidence: boolean;
+      relevance_score: number;
+      original_query: string;
+      address_components?: any;
+    };
+    [key: string]: any;        // Other properties
+  };
+  skip_geocoding: boolean;     // boolean
+  skip_reason: string;         // text
 }
 
 // Type for geometry field - could be extended with specific geometry types

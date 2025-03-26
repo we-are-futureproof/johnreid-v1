@@ -43,7 +43,8 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 
 ### Phase 4: Filtering and Analysis Features
 - [x] Implement land area filtering
-- [x] Implement UMC location geocoding
+- [x] Implement UMC location geocoding (frontend fallback)
+- [x] Implement batch geocoding system for database
 - [x] Create filtering UI components
 - [ ] Implement search functionality
 - [ ] Add data export capabilities
@@ -70,16 +71,25 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 - **Deployment**: To be determined
 
 ## Current Status
-The application has a functional map displaying UMC locations in the Nashville area, along with Qualified Census Tracts (QCT) and Difficult Development Areas (DDA). UMC locations are geocoded with a reliable fallback system for Nashville churches, ensuring consistent data display without relying on external geocoding services.
+The application has a functional map displaying UMC locations in the Nashville area, along with Qualified Census Tracts (QCT) and Difficult Development Areas (DDA). UMC locations are geocoded using two complementary approaches:
+
+1. A comprehensive batch geocoding system for processing the entire UMC database with Mapbox API integration
+2. A reliable frontend fallback system for Nashville churches ensuring consistent data display
+
+The batch geocoding system includes robust error handling, memory management for large datasets, detailed progress reporting, and database integration.
 
 ## Key Achievements
 1. **Optimized Supabase Queries**: Implemented spatial filtering for QCT and DDA zones to improve performance and prevent timeouts
-2. **Geocoding Solution**: Developed a robust geocoding system for UMC locations with Nashville-focused fallback data
+2. **Comprehensive Geocoding Solution**: Developed a dual-approach geocoding system with:
+   - A batch processing system for the full UMC database with Mapbox API integration
+   - A Nashville-focused frontend fallback system for reliable map display
 3. **Interactive Map**: Created an interactive map with layer toggles and property filtering by land area
 4. **Mobile-Responsive Design**: Built a responsive UI that works well on various screen sizes
+5. **Memory-Efficient Processing**: Implemented strategies for handling large datasets with optimized memory usage
 
 ## Next Steps
 1. Test the application with more real-world data
-2. Expand geocoding capabilities beyond Nashville if needed
+2. Refine the batch geocoding system with address normalization preprocessing
 3. Add search functionality for specific UMC properties
 4. Implement additional filtering options and data visualization
+5. Develop a UI for manual verification and correction of low-confidence geocoding results

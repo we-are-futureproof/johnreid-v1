@@ -6,107 +6,199 @@ This document provides details on the geocoding approach used in the UMC Propert
 
 The application needs to display United Methodist Church (UMC) locations on a map, which requires geographic coordinates (latitude and longitude) for each location. While the database contains addresses for these locations, many records lack the coordinate data needed for mapping. This document explains our approach to resolving this challenge.
 
+The geocoding solution consists of a comprehensive batch processing system that geocodes UMC location addresses and stores the coordinates in the database for use by the frontend application.
+
 ## Geocoding Approach
 
-### Nashville-Focused Solution
+### Comprehensive Batch Geocoding System
 
-The current implementation focuses on the Nashville, Tennessee metro area as the primary region of interest. This approach has several advantages:
+We've implemented a robust batch geocoding system that processes UMC locations from the database and enriches them with geographic coordinates. The system includes:
 
-1. Provides consistent and reliable data for the most important region
-2. Reduces dependency on external geocoding APIs
-3. Improves performance by limiting the number of locations to process
-4. Provides a stable fallback system when API geocoding fails
+1. **Batch Processing**: Efficiently handles large datasets by processing locations in configurable batches with concurrent execution
+2. **Memory Management**: Implements periodic error log flushing to prevent memory issues with large datasets
+3. **Detailed Progress Reporting**: Provides comprehensive summaries of geocoding progress at regular intervals
+4. **Error Handling**: Includes robust error handling with retries for transient failures
+5. **Flexible Address Validation**: Validates addresses requiring a street address and either city or state (not necessarily both)
+
+### Database-Driven Frontend
+
+The frontend implementation leverages the geocoded data from the database, with the following advantages:
+
+1. Displays accurate coordinates for all geocoded locations across the country
+2. Eliminates the need for hardcoded location data
+3. Automatically benefits from continuous improvements to the geocoding database
+4. Provides consistent user experience with reliable data
 
 ### Implementation Details
 
-#### 1. Nashville Church Location Database
+#### 1. Batch Geocoding Process
 
-We've created a hardcoded database of known Nashville-area UMC churches with accurate coordinates:
+The batch geocoding system is implemented in Node.js and consists of several specialized modules:
 
-```typescript
-const NASHVILLE_CHURCHES = [
-  { name: 'Belmont United Methodist Church', lat: 36.1352, lng: -86.7988 },
-  { name: 'West End United Methodist Church', lat: 36.1492, lng: -86.8074 },
-  { name: 'McKendree United Methodist Church', lat: 36.1640, lng: -86.7819 },
-  { name: 'Edgehill United Methodist Church', lat: 36.1486, lng: -86.7892 },
-  { name: 'East End United Methodist Church', lat: 36.1782, lng: -86.7551 },
-  { name: 'Calvary United Methodist Church', lat: 36.1663, lng: -86.7742 },
-  { name: 'Sixty-First Avenue United Methodist Church', lat: 36.1686, lng: -86.8466 },
-  { name: 'Woodbine United Methodist Church', lat: 36.1248, lng: -86.7318 },
-  { name: 'Glendale United Methodist Church', lat: 36.0996, lng: -86.8157 }
-];
-```
-
-#### 2. Fallback Location Generation
-
-To provide additional data points beyond the known churches, we also generate supplementary locations within the Nashville area:
-
-```typescript
-function generateDummyLocations() {
-  const nashvilleCenter = { lat: 36.1627, lng: -86.7816 };
-  // Add locations around Nashville with small random offsets
+```javascript
+// Main entry point orchestrating the geocoding process
+export async function executeGeocoding(cliArgs = []) {
+  // Load configuration, set up database, initialize services
+  // Process locations in batches with detailed progress reporting
+  // Save comprehensive results to files
 }
 ```
 
-#### 3. Data Filtering in Map Component
+Key components include:
 
-The Map component filters UMC locations based on geographic proximity to Nashville:
+- **Configuration Management**: YAML-based configuration with CLI overrides for flexibility
+- **Database Integration**: Supabase client for retrieving and updating UMC location data
+- **Geocoding Service**: Integration with Mapbox Geocoding API
+- **Rate Limiting**: Smart rate limiting to comply with API usage constraints
+- **Error Handling**: Comprehensive error tracking with disk-based logging
+
+#### 2. Frontend Database Integration
+
+The frontend application now queries geocoded locations directly from the database:
 
 ```typescript
-const nashvilleAreaLocations = umcLocations.filter(location => {
+// Fetch UMC locations with coordinates from the database
+async function fetchUMCLocations() {
+  const { data, error } = await supabase
+    .from('umc_locations')
+    .select('gcfa, name, address, city, state, latitude, longitude, conference, district')
+    .not('latitude', 'is', null);
+  
+  if (error) {
+    console.error('Error fetching UMC locations:', error);
+    return [];
+  }
+  
+  return data;
+}
+```
+
+#### 3. Geographic Region Filtering
+
+The Map component can filter UMC locations based on geographic region as needed:
+
+```typescript
+const filteredLocations = umcLocations.filter(location => {
   // Skip locations without coordinates
   if (!location.latitude || !location.longitude) return false;
   
-  // Calculate distance from Nashville
-  const latDiff = Math.abs(location.latitude - nashvilleLat);
-  const lngDiff = Math.abs(location.longitude - nashvilleLng);
+  // Apply any additional filters (e.g., by state, region, etc.)
+  if (filterState && location.state !== filterState) return false;
   
-  // Simple bounding box check (for performance)
-  return latDiff < radiusInDegrees && lngDiff < radiusInDegrees;
+  // Apply bounding box filter if viewing a specific region
+  if (viewingRegion) {
+    const latDiff = Math.abs(location.latitude - regionCenter.lat);
+    const lngDiff = Math.abs(location.longitude - regionCenter.lng);
+    return latDiff < regionRadius && lngDiff < regionRadius;
+  }
+  
+  return true;
 });
 ```
 
-## External API Integration (Alternative Approach)
+## Mapbox API Integration
 
-In an earlier implementation, we attempted to use the Nominatim OpenStreetMap API for geocoding:
+Our batch geocoding system uses the Mapbox Geocoding API for reliable address-to-coordinate conversion:
 
-```typescript
-async function geocodeAddress(address: string, city: string, state: string): Promise<{lat: number, lng: number} | null> {
-  // Request to Nominatim API with appropriate headers and error handling
+```javascript
+async function geocodeAddress(address, city, state) {
+  // Construct the search query from address components
+  const query = normalizeAddressForGeocoding(address, city, state);
+  
+  // Call Mapbox API with appropriate rate limiting
+  const response = await this.callMapboxAPI(query);
+  
+  // Process and validate the response
+  return this.processMapboxResponse(response, address, city, state);
 }
 ```
 
-This approach was replaced with the hardcoded Nashville data solution due to:
-- API rate limiting issues
-- Inconsistent address formats in the database
-- Need for reliability in demo environments
+The implementation includes:
+- **Validation**: Ensures address components are valid before geocoding
+- **Rate Limiting**: Prevents exceeding API usage limits
+- **Result Validation**: Evaluates geocoding quality with confidence scoring
+- **Error Handling**: Properly handles and logs failed geocoding attempts
+
+## Technical Features
+
+### Memory Management
+
+To handle large datasets efficiently, the geocoding system implements:
+
+```javascript
+// Batch processing of errors to prevent memory bloat
+export async function flushErrorsToDisk(errors, maxBatchSize = 50) {
+  // Write errors to disk in batches to manage memory usage
+}
+```
+
+### Progress Reporting
+
+Detailed progress updates are provided during processing:
+
+```javascript
+// Display detailed progress metrics at significant milestones
+if (isSignificantMilestone) {
+  // Query database for current status
+  // Display comprehensive progress summary
+}
+```
+
+### Database Operations
+
+Includes retry mechanisms for database operations:
+
+```javascript
+async function updateLocationWithRetry(location, geocodingResult, retries = 3) {
+  // Attempt update with exponential backoff for retries
+  // Intelligently identify transient errors vs. permanent failures
+}
+```
 
 ## Future Improvements
 
-The geocoding solution could be enhanced with:
+The geocoding solution could be further enhanced with:
 
-1. **External API with caching**: Implement a more reliable geocoding service with local caching
-2. **Database updates**: Store successfully geocoded coordinates back in the database
-3. **Address normalization**: Preprocess addresses to improve geocoding success rates
-4. **Expanded region support**: Add hardcoded fallback data for additional metro areas
-5. **User input**: Allow manual coordinate adjustment for locations
+1. **Preprocessing Pipeline**: Add address normalization to improve geocoding success rates
+2. **Fuzzy Matching**: Implement fuzzy matching for church names with known coordinates
+3. **Multiple Geocoding Providers**: Add fallback to alternative geocoding services
+4. **Confidence Scoring Tuning**: Refine the confidence scoring system based on real-world results
+5. **User Interface**: Develop a frontend for manual verification of low-confidence results
 
 ## Technical Considerations
 
 ### Performance
 
-- Current solution has O(1) performance regardless of database size
-- No external API dependencies means consistent load times
-- Minimal memory usage with focused data set
+#### Frontend
+- Database-driven approach scales efficiently with query optimization
+- Client-side filtering for specific regions when needed
+- Optimized data loading with selective field retrieval
+
+#### Batch Geocoding
+- Configurable batch size and concurrency for performance tuning
+- Memory-efficient error handling for processing large datasets
+- Database operations optimized with efficient query patterns
 
 ### Reliability
 
-- Provides consistent results for demo environments
-- Never fails to display meaningful data on the map
-- Nashville-area churches always appear even if database retrieval fails
+#### Frontend
+- Database provides a single source of truth for all locations
+- Progressive enhancement: displays available data even when incomplete
+- Graceful handling of locations without coordinates
+
+#### Batch Geocoding
+- Robust error handling with detailed logging
+- Retry mechanisms for transient failures
+- Comprehensive validation of geocoding results
 
 ### Maintenance
 
-- Adding new hardcoded locations is straightforward
+#### Frontend
+- No need to manually maintain location data
+- Automatic updates as the database is enriched
 - Code is well-documented for future developers
-- Clear separation between data retrieval and fallback systems
+
+#### Batch Geocoding
+- Modular architecture with clear separation of concerns
+- YAML-based configuration for easy adjustment
+- Detailed reporting and logging for monitoring and diagnostics
