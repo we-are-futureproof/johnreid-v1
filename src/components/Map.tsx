@@ -58,7 +58,15 @@ const ddaLayerStyle: LayerProps = {
   }
 };
 
-export default function MapComponent() {
+interface MapComponentProps {
+  searchLocation: {
+    latitude: number;
+    longitude: number;
+    zoom: number;
+  } | null;
+}
+
+export default function MapComponent({ searchLocation }: MapComponentProps) {
   // Using any to avoid type conflicts between mapbox-gl and react-map-gl
   const mapRef = useRef<any>(null);
   const [qctData, setQctData] = useState<any>(null);
@@ -79,6 +87,9 @@ export default function MapComponent() {
     latitude: 36.1627,
     zoom: 9.5  // Closer zoom to show Nashville metro area
   });
+  
+  // State to track current map style
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/light-v11');
   const [showQCT, setShowQCT] = useState(true);
   const [showDDA, setShowDDA] = useState(true);
 
@@ -315,6 +326,18 @@ export default function MapComponent() {
   // Create a ref to track if this is the first time loading zones
   const isFirstZoneLoad = useRef(true);
   
+  // Handle updates from search box
+  useEffect(() => {
+    if (searchLocation && mapRef.current) {
+      // Fly to the searched location
+      mapRef.current.flyTo({
+        center: [searchLocation.longitude, searchLocation.latitude],
+        zoom: searchLocation.zoom,
+        duration: mapAnimationConfig.flyToDuration
+      });
+    }
+  }, [searchLocation]);
+  
   // Fetch QCT and DDA data based on map bounds
   useEffect(() => {
     const loadZoneData = async () => {
@@ -477,7 +500,7 @@ export default function MapComponent() {
         onMove={(evt: { viewState: any }) => setViewState(evt.viewState)}
         onMoveEnd={updateMapBounds}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle={mapStyle}
         interactiveLayerIds={[...(showQCT ? ['qct-layer'] : []), ...(showDDA ? ['dda-layer'] : [])]}
         onClick={handleMapClick}
         trackResize={false}
@@ -487,6 +510,31 @@ export default function MapComponent() {
       >
         {/* Navigation controls */}
         <NavigationControl position="top-left" />
+        
+        {/* Satellite View Toggle */}
+        <div className="absolute left-4 bottom-24 z-50">
+          <button 
+            onClick={() => setMapStyle(mapStyle.includes('satellite') ? 
+              'mapbox://styles/mapbox/light-v11' : 
+              'mapbox://styles/mapbox/satellite-streets-v12')}
+            className="bg-white py-3 px-4 rounded-lg shadow-xl border-2 border-blue-500 flex items-center space-x-3 hover:bg-blue-50 transition-colors"
+            title={mapStyle.includes('satellite') ? 'Switch to street view' : 'Switch to satellite view'}
+          >
+            {mapStyle.includes('satellite') ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+              </svg>
+            )}
+            <span className="text-sm font-semibold text-blue-600">
+              {mapStyle.includes('satellite') ? 'Street View' : 'Satellite View'}
+            </span>
+          </button>
+        </div>
 
         {/* QCT Layer */}
         {qctData && showQCT && (

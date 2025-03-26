@@ -1,5 +1,6 @@
 import './index.css'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
+import SearchBox from './components/SearchBox'
 
 // Dynamic import for Map component
 const MapComponent = lazy(() => import('./components/Map'))
@@ -8,16 +9,34 @@ function App() {
   // We'll use loading state in the future when we implement data loading indicators
   // const [isLoading, setIsLoading] = useState(false)
   const isLoading = false
+  
+  // State for search location (will be passed to MapComponent)
+  const [searchLocation, setSearchLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    zoom: number;
+  } | null>(null)
 
   return (
     <div className="app-container h-screen w-screen flex flex-col">
       <header className="bg-black text-white p-6 shadow-md relative">
-        <div className="container pr-16 flex justify-between items-center">
+        <div className="container px-4 flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold">UMC Property Analysis Map</h1>
+            <h1 className="text-2xl font-bold mr-6">UMC Property Analysis Map</h1>
+          </div>
+          <div className="flex-grow flex justify-center">
+            <SearchBox 
+              onLocationSelect={(lat, lng, zoom) => {
+                setSearchLocation({
+                  latitude: lat,
+                  longitude: lng,
+                  zoom: zoom
+                });
+              }} 
+            />
           </div>
         </div>
-        <div className="absolute top-0 right-0 h-full bg-white p-6 flex items-center">
+        <div className="absolute top-0 right-0 h-full bg-white p-6 flex items-center border border-gray-300">
           <a
             href="https://johnreid.com"
             target="_blank"
@@ -44,7 +63,7 @@ function App() {
           </div>
         ) : null}
 
-        <MapComponent />
+        <MapComponent searchLocation={searchLocation} />
         </Suspense>
       </main>
 
