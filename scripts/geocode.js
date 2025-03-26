@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * UMC Geocoding Script
- * 
+ *
  * This script is the main entry point for the UMC geocoding process.
  * It includes argument parsing, validation, and calls the core geocoding functionality.
- * 
+ *
  * Usage:
  *   pnpm geocode             - Process up to 100 records (default)
  *   pnpm geocode --all       - Process all records (unlimited)
@@ -28,10 +28,12 @@ Usage:
   pnpm geocode             - Process up to 100 records (default)
   pnpm geocode --all       - Process all records (unlimited)
   pnpm geocode --limit N   - Process exactly N records (e.g., --limit 500)
+  pnpm geocode --report    - Run data integrity checks on geocoded data
 
 Examples:
   pnpm geocode --limit 1000
   pnpm geocode --all
+  pnpm geocode --report
   `);
   process.exit(0);
 }

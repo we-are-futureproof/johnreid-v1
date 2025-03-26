@@ -26,7 +26,7 @@ export function loadConfig(cliArgs = []) {
       customLimit = limitValue;
     }
   }
-  
+
   // Default configuration with conservative settings
   const defaultConfig = {
     processing: {

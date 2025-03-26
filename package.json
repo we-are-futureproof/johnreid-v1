@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.49.3",
     "@tailwindcss/postcss": "^4.0.16",
     "autoprefixer": "^10.4.15",
+    "chalk": "^5.4.1",
     "dotenv": "^16.4.7",
     "js-yaml": "^4.1.0",
     "mapbox-gl": "^3.10.0",

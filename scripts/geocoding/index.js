@@ -11,6 +11,7 @@ import { Logger } from './lib/logger.js';
 import * as db from './lib/db.js';
 import * as processor from './lib/processor.js';
 import * as reporting from './lib/reporting.js';
+import { runIntegrityReport, checkSqlExecutionFunction } from './lib/integrity-report.js';
 
 /**
  * Execute the geocoding process
@@ -23,86 +24,117 @@ export async function executeGeocoding(cliArgs = []) {
     const logger = new Logger();
     logger.setup();
     console.log('Starting UMC Locations geocoding script');
-    
+
+    // Check if we're just running a report
+    if (cliArgs.includes('--report')) {
+      console.log('Report mode: Running database integrity checks...');
+
+      // Load environment variables
+      dotenv.config();
+
+      // Validate environment variables are present
+      if (!validateEnv()) {
+        console.error('Missing required environment variables. Aborting.');
+        return false;
+      }
+
+      // Initialize Supabase client
+      const supabase = db.initSupabase(
+        process.env.VITE_SUPABASE_URL,
+        process.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      // Check if the SQL execution function exists
+      if (!await checkSqlExecutionFunction()) {
+        console.error('Could not access the SQL execution function. Aborting.');
+        return false;
+      }
+
+      // Run the integrity report
+      const reportResults = await runIntegrityReport();
+
+      return reportResults.success;
+    }
+
     // Load environment variables
     dotenv.config();
-    
+
     // Validate environment variables are present
     if (!validateEnv()) {
       console.error('Missing required environment variables. Aborting.');
       return false;
     }
-    
+
     // Load configuration from YAML file with CLI overrides
     const config = loadConfig(cliArgs);
-    
+
     // Initialize Supabase client
     const supabase = db.initSupabase(
-      process.env.VITE_SUPABASE_URL, 
+      process.env.VITE_SUPABASE_URL,
       process.env.VITE_SUPABASE_ANON_KEY
     );
-    
+
     // Validate database schema
     if (!await db.validateGeoColumns()) {
       console.error('Database schema validation failed. Aborting.');
       return false;
     }
-    
+
     // Show initial progress report from the database
-    const initialProgressQuery = await supabase.rpc('run_sql', { 
-      sql_query: reporting.GEOCODING_PROGRESS_SQL 
+    const initialProgressQuery = await supabase.rpc('run_sql', {
+      sql_query: reporting.GEOCODING_PROGRESS_SQL
     });
-    
+
     if (initialProgressQuery.data) {
       console.log('Current status before starting geocoding:');
       reporting.displayProgressReport(initialProgressQuery.data);
     }
-    
+
     // Create rate limiter
     const rateLimiter = new RateLimiter(config.rate_limits.requests_per_minute);
-    
+
     // Create geocoder instance
     const geocoder = new Geocoder(
       process.env.VITE_MAPBOX_ACCESS_TOKEN,
       config,
       rateLimiter
     );
-    
+
     // Fetch locations that need geocoding
     const locations = await db.fetchUMCLocations(config);
-    
+
     if (locations.length === 0) {
       console.log('No UMC locations need geocoding. Exiting.');
       return true;
     }
-    
+
     // Process all locations in batches
     console.log(`Starting geocoding process for ${locations.length} locations...`);
     const results = await processor.processAllLocations(locations, geocoder, config);
-    
+
     // Show final results
     console.log('\n===== GEOCODING COMPLETED =====');
     console.log(`Total locations processed: ${results.processed}`);
     console.log(`Successfully geocoded: ${results.success}`);
     console.log(`Failed to geocode: ${results.failed}`);
     console.log(`Skipped (incomplete address): ${results.skipped}`);
-    
+
     // Show final progress report from the database
-    const finalProgressQuery = await supabase.rpc('run_sql', { 
-      sql_query: reporting.GEOCODING_PROGRESS_SQL 
+    const finalProgressQuery = await supabase.rpc('run_sql', {
+      sql_query: reporting.GEOCODING_PROGRESS_SQL
     });
-    
+
     if (finalProgressQuery.data) {
       console.log('\nFinal status after geocoding:');
       reporting.displayProgressReport(finalProgressQuery.data);
     }
-    
+
     // Save results to file
     await reporting.saveResultsToFile(results, results.errors, db);
-    
+
     // Cleanup and close logger
     logger.cleanup();
-    
+
     return true;
   } catch (error) {
     console.error('Fatal error during geocoding process:', error);
@@ -114,7 +146,7 @@ export async function executeGeocoding(cliArgs = []) {
 if (import.meta.url === import.meta.resolve(process.argv[1])) {
   // Extract command line arguments, skipping node and script name
   const cliArgs = process.argv.slice(2);
-  
+
   executeGeocoding(cliArgs)
     .then(success => {
       if (success) {
