@@ -6,7 +6,7 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 
 This application helps analyze UMC properties in relation to various federal housing and development designations, providing valuable insights for property development and community investment decisions.
 
-![screenshot](./docs/screenshot.png)
+![screenshot](./docs/screenshot-v1.png)
 
 
 ### Key Features

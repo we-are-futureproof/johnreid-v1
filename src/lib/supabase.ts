@@ -136,29 +136,83 @@ export interface MapBounds {
   west: number;  // Minimum longitude
 }
 
+// Cache storage for UMC locations to reduce database calls
+interface UMCLocationCache {
+  timestamp: number;
+  bounds?: MapBounds;
+  data: UMCLocation[];
+}
+
+// Initialize empty cache
+let umcLocationCache: UMCLocationCache = {
+  timestamp: 0,
+  data: []
+};
+
+// Cache expiration in milliseconds (5 minutes)
+const CACHE_EXPIRATION = 5 * 60 * 1000;
+
+// Utility function to check if bounds are within cached bounds with padding
+function isBoundsWithinCache(requestBounds: MapBounds, cacheBounds: MapBounds): boolean {
+  // Add padding to cached bounds (20% of height/width)
+  const latPadding = (cacheBounds.north - cacheBounds.south) * 0.2;
+  const lngPadding = (cacheBounds.east - cacheBounds.west) * 0.2;
+  
+  // Check if request bounds are completely within padded cache bounds
+  return (
+    requestBounds.south >= cacheBounds.south - latPadding &&
+    requestBounds.north <= cacheBounds.north + latPadding &&
+    requestBounds.west >= cacheBounds.west - lngPadding &&
+    requestBounds.east <= cacheBounds.east + lngPadding
+  );
+}
+
 // Utility functions for data fetching
 export async function fetchUMCLocations(
   bounds?: MapBounds
 ): Promise<UMCLocation[]> {
   try {
-    // Fetch UMC locations from database
-
-    // Build the query with filters
+    // If we have bounds, check cache first
+    if (bounds && umcLocationCache.bounds && umcLocationCache.data.length > 0) {
+      const now = Date.now();
+      const cacheAge = now - umcLocationCache.timestamp;
+      
+      // If cache is fresh and the requested bounds are within cached bounds
+      if (cacheAge < CACHE_EXPIRATION && isBoundsWithinCache(bounds, umcLocationCache.bounds)) {
+        // Filter the cached data to match the current bounds
+        const filteredCache = umcLocationCache.data.filter(location => 
+          location.latitude && location.longitude &&
+          location.latitude >= bounds.south &&
+          location.latitude <= bounds.north &&
+          location.longitude >= bounds.west &&
+          location.longitude <= bounds.east
+        );
+        
+        // Only use cache if we have enough results
+        if (filteredCache.length > 0) {
+          return filteredCache;
+        }
+      }
+    }
+    
+    // If cache miss or expired, fetch from database
     let query = supabase
       .from('umc_locations')
       .select('gcfa, url, name, conference, district, city, state, status, address, latitude, longitude, details')
       .not('latitude', 'is', null);
 
-    // Apply map bounds filters if provided
+    // Apply map bounds filters if provided with padding to improve cache hit rate
     if (bounds) {
-      // Filter locations within the visible map bounds
+      // Add 20% padding to bounds for better caching
+      const latPadding = (bounds.north - bounds.south) * 0.2;
+      const lngPadding = (bounds.east - bounds.west) * 0.2;
+      
+      // Filter locations with padded bounds
       query = query
-        .gte('latitude', bounds.south)
-        .lte('latitude', bounds.north)
-        .gte('longitude', bounds.west)
-        .lte('longitude', bounds.east);
-
-      // Filter by map bounds
+        .gte('latitude', bounds.south - latPadding)
+        .lte('latitude', bounds.north + latPadding)
+        .gte('longitude', bounds.west - lngPadding)
+        .lte('longitude', bounds.east + lngPadding);
     }
 
     const { data, error } = await query;
@@ -171,30 +225,25 @@ export async function fetchUMCLocations(
 
     // Get raw data from database result
     const rawData = data || [];
-
-    // Convert raw database results to UMCLocation objects
-    const filteredData: UMCLocation[] = rawData.map(location => {
-      // Create a new UMCLocation object with all properties from the database result
-      const umcLocation: UMCLocation = {
-        gcfa: location.gcfa,
-        url: location.url,
-        name: location.name,
-        conference: location.conference,
-        district: location.district,
-        city: location.city,
-        state: location.state,
-        status: location.status,
-        address: location.address,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        details: location.details
+    
+    // Process the results more efficiently, ensuring all required fields exist
+    const processedData: UMCLocation[] = rawData.map(item => ({
+      ...item,
+      // Ensure details exists (default to empty object if null/undefined)
+      details: item.details || {}
+    }));
+    
+    // Update cache with new data
+    if (bounds && processedData.length > 0) {
+      umcLocationCache = {
+        timestamp: Date.now(),
+        bounds: bounds,
+        data: processedData
       };
+    }
 
-      return umcLocation;
-    });
-
-    // Retrieved UMC locations after filtering
-    return filteredData;
+    // Return the processed data
+    return processedData;
   } catch (error) {
     // Handle unexpected error in fetchUMCLocations
     // Fall back to dummy data if an unexpected error occurs
@@ -205,7 +254,9 @@ export async function fetchUMCLocations(
 
 // Create fallback UMC locations using the dummy data
 function createFallbackUMCLocations(bounds?: MapBounds): UMCLocation[] {
+  console.log('Creating fallback UMC locations');
   const dummyLocations = generateDummyLocations();
+  console.log('Generated dummy locations:', dummyLocations);
 
   // Filter by bounds if provided
   const filteredLocations = bounds
@@ -216,9 +267,11 @@ function createFallbackUMCLocations(bounds?: MapBounds): UMCLocation[] {
         loc.lng <= bounds.east
       )
     : dummyLocations;
+  
+  console.log('Filtered locations:', filteredLocations);
 
   // Convert the dummy locations to UMCLocation objects
-  return filteredLocations.map((loc, index) => ({
+  const result = filteredLocations.map((loc, index) => ({
     gcfa: 1000 + index,
     url: '',
     name: loc.name,
@@ -232,6 +285,9 @@ function createFallbackUMCLocations(bounds?: MapBounds): UMCLocation[] {
     latitude: loc.lat,
     longitude: loc.lng
   }));
+  
+  console.log('Returning fallback UMC locations:', result);
+  return result;
 }
 
 export async function fetchQualifiedCensusTracts(bounds?: MapBounds): Promise<QualifiedCensusTract[]> {

@@ -54,46 +54,167 @@ Key components include:
 
 #### 2. Frontend Database Integration
 
-The frontend application now queries geocoded locations directly from the database:
+The frontend application now queries geocoded locations directly from the database with optimized caching:
 
 ```typescript
-// Fetch UMC locations with coordinates from the database
-async function fetchUMCLocations() {
-  const { data, error } = await supabase
-    .from('umc_locations')
-    .select('gcfa, name, address, city, state, latitude, longitude, conference, district')
-    .not('latitude', 'is', null);
+// Cache storage for UMC locations to reduce database calls
+interface UMCLocationCache {
+  timestamp: number;
+  bounds?: MapBounds;
+  data: UMCLocation[];
+}
+
+// Initialize empty cache
+let umcLocationCache: UMCLocationCache = {
+  timestamp: 0,
+  data: []
+};
+
+// Cache expiration in milliseconds (5 minutes)
+const CACHE_EXPIRATION = 5 * 60 * 1000;
+
+// Utility function to check if bounds are within cached bounds with padding
+function isBoundsWithinCache(requestBounds: MapBounds, cacheBounds: MapBounds): boolean {
+  // Add padding to cached bounds (20% of height/width)
+  const latPadding = (cacheBounds.north - cacheBounds.south) * 0.2;
+  const lngPadding = (cacheBounds.east - cacheBounds.west) * 0.2;
   
-  if (error) {
-    console.error('Error fetching UMC locations:', error);
-    return [];
+  // Check if request bounds are completely within padded cache bounds
+  return (
+    requestBounds.south >= cacheBounds.south - latPadding &&
+    requestBounds.north <= cacheBounds.north + latPadding &&
+    requestBounds.west >= cacheBounds.west - lngPadding &&
+    requestBounds.east <= cacheBounds.east + lngPadding
+  );
+}
+
+// Fetch UMC locations with bounds-based filtering and caching
+export async function fetchUMCLocations(bounds?: MapBounds): Promise<UMCLocation[]> {
+  try {
+    // If we have bounds, check cache first
+    if (bounds && umcLocationCache.bounds && umcLocationCache.data.length > 0) {
+      const now = Date.now();
+      const cacheAge = now - umcLocationCache.timestamp;
+      
+      // If cache is fresh and the requested bounds are within cached bounds
+      if (cacheAge < CACHE_EXPIRATION && isBoundsWithinCache(bounds, umcLocationCache.bounds)) {
+        // Filter the cached data to match the current bounds
+        const filteredCache = umcLocationCache.data.filter(location => 
+          location.latitude && location.longitude &&
+          location.latitude >= bounds.south &&
+          location.latitude <= bounds.north &&
+          location.longitude >= bounds.west &&
+          location.longitude <= bounds.east
+        );
+        
+        // Only use cache if we have enough results
+        if (filteredCache.length > 0) {
+          return filteredCache;
+        }
+      }
+    }
+    
+    // If cache miss or expired, fetch from database
+    let query = supabase
+      .from('umc_locations')
+      .select('gcfa, url, name, conference, district, city, state, status, address, latitude, longitude, details')
+      .not('latitude', 'is', null);
+    
+    // Apply map bounds filters if provided with padding to improve cache hit rate
+    if (bounds) {
+      // Add 20% padding to bounds for better caching
+      const latPadding = (bounds.north - bounds.south) * 0.2;
+      const lngPadding = (bounds.east - bounds.west) * 0.2;
+      
+      // Filter locations with padded bounds
+      query = query
+        .gte('latitude', bounds.south - latPadding)
+        .lte('latitude', bounds.north + latPadding)
+        .gte('longitude', bounds.west - lngPadding)
+        .lte('longitude', bounds.east + lngPadding);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      // Fall back to dummy data if database query fails
+      const fallbackLocations = createFallbackUMCLocations(bounds);
+      return fallbackLocations;
+    }
+    
+    // Get raw data from database result
+    const rawData = data || [];
+    
+    // Process the results more efficiently, ensuring all required fields exist
+    const processedData: UMCLocation[] = rawData.map(item => ({
+      ...item,
+      // Ensure details exists (default to empty object if null/undefined)
+      details: item.details || {}
+    }));
+    
+    // Update cache with new data
+    if (bounds && processedData.length > 0) {
+      umcLocationCache = {
+        timestamp: Date.now(),
+        bounds: bounds,
+        data: processedData
+      };
+    }
+    
+    // Return the processed data
+    return processedData;
+  } catch (error) {
+    // Handle unexpected error in fetchUMCLocations
+    // Fall back to dummy data if an unexpected error occurs
+    const fallbackLocations = createFallbackUMCLocations(bounds);
+    return fallbackLocations;
   }
-  
-  return data;
 }
 ```
 
-#### 3. Geographic Region Filtering
+#### 3. Optimized Data Loading with Debouncing
 
-The Map component can filter UMC locations based on geographic region as needed:
+The application now includes enhanced data loading with debouncing to prevent excessive requests:
 
 ```typescript
-const filteredLocations = umcLocations.filter(location => {
-  // Skip locations without coordinates
-  if (!location.latitude || !location.longitude) return false;
-  
-  // Apply any additional filters (e.g., by state, region, etc.)
-  if (filterState && location.state !== filterState) return false;
-  
-  // Apply bounding box filter if viewing a specific region
-  if (viewingRegion) {
-    const latDiff = Math.abs(location.latitude - regionCenter.lat);
-    const lngDiff = Math.abs(location.longitude - regionCenter.lng);
-    return latDiff < regionRadius && lngDiff < regionRadius;
+// Track loading state for UMC data
+const [isLoadingUMC, setIsLoadingUMC] = useState<boolean>(false);
+const fetchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+// Load UMC locations when map bounds change
+useEffect(() => {
+  // Clear any existing timeout
+  if (fetchTimeout.current) {
+    clearTimeout(fetchTimeout.current);
   }
   
-  return true;
-});
+  // Use a short delay to prevent multiple fetches during rapid movement
+  fetchTimeout.current = setTimeout(async () => {
+    // Skip fetching if bounds are invalid
+    if (!mapBounds || 
+        (mapBounds.north === mapBounds.south || 
+         mapBounds.east === mapBounds.west)) {
+      return;
+    }
+    
+    setIsLoadingUMC(true);
+    
+    try {
+      // Fetch UMC locations based on current map bounds
+      const umcLocations = await fetchUMCLocations(mapBounds);
+      
+      // Even if we get zero locations, still update the properties
+      // This ensures markers are removed when moving to an area with no data
+      addStatusMessage(`Retrieved ${umcLocations.length} UMC locations`);
+      setProperties(umcLocations);
+    } catch (error) {
+      console.error('Error loading UMC data:', error);
+      addStatusMessage(`Error loading UMC location data`);
+    } finally {
+      setIsLoadingUMC(false);
+    }
+  }, 200); // Short delay to batch updates
+}, [mapBounds, addStatusMessage, setProperties]);
 ```
 
 ## Mapbox API Integration

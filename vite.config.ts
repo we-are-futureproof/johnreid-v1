@@ -18,15 +18,49 @@ export default defineConfig({
   },
   build: {
     // Increase the warning limit to avoid unnecessary warnings
-    chunkSizeWarningLimit: 1000, // 1000 kB
+    chunkSizeWarningLimit: 1200, // 1200 kB
     
     rollupOptions: {
       output: {
-        // Manual code splitting for better performance
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'mapbox-gl', 'react-map-gl'],
-          supabase: ['@supabase/supabase-js'],
-          ui: ['@headlessui/react', '@heroicons/react', 'tailwindcss']  
+        // Improved code splitting for better performance and smaller chunks
+        manualChunks: (id) => {
+          // React core libraries
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'react-core';
+          }
+          
+          // Map libraries (these are large and should be separate)
+          if (id.includes('node_modules/mapbox-gl/') ||
+              id.includes('node_modules/@mapbox/')) {
+            return 'mapbox';
+          }
+          
+          if (id.includes('node_modules/react-map-gl/')) {
+            return 'react-map-gl';
+          }
+          
+          // Supabase client
+          if (id.includes('node_modules/@supabase/')) {
+            return 'supabase';
+          }
+          
+          // UI components and styling
+          if (id.includes('node_modules/@headlessui/') ||
+              id.includes('node_modules/@heroicons/')) {
+            return 'ui-components';
+          }
+          
+          if (id.includes('node_modules/tailwindcss/')) {
+            return 'tailwind';
+          }
+          
+          // Other common dependencies
+          if (id.includes('node_modules/')) {
+            // Group remaining smaller dependencies
+            return 'vendor';
+          }
         }
       }
     }
