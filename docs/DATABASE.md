@@ -161,7 +161,6 @@ interface UmcLocation {
   address: string;             // text
   latitude: number;            // float8, double precision
   longitude: number;           // float8, double precision
-  land_area: number;           // float8, double precision
   details: {                   // json
     geocoding_data?: {
       source: string;

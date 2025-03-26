@@ -11,23 +11,25 @@ function App() {
 
   return (
     <div className="app-container h-screen w-screen flex flex-col">
-      <header className="bg-indigo-700 text-white p-4 shadow-md">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">UMC Property Analysis Map</h1>
-          <div className="flex space-x-4">
-            <a 
-              href="#about" 
-              className="hover:text-indigo-200 transition-colors"
-            >
-              About
-            </a>
-            <a 
-              href="#help" 
-              className="hover:text-indigo-200 transition-colors"
-            >
-              Help
-            </a>
+      <header className="bg-black text-white p-6 shadow-md relative">
+        <div className="container pr-16 flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold">UMC Property Analysis Map</h1>
           </div>
+        </div>
+        <div className="absolute top-0 right-0 h-full bg-white p-6 flex items-center">
+          <a
+            href="https://johnreid.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-red-600 transition-colors"
+          >
+            <img
+              src="/johnreid-logo.avif"
+              alt="JohnReid"
+              className="h-14"
+            />
+          </a>
         </div>
       </header>
 
@@ -41,7 +43,7 @@ function App() {
             </div>
           </div>
         ) : null}
-        
+
         <MapComponent />
         </Suspense>
       </main>

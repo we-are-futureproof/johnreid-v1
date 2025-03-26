@@ -5,9 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Log to help with debugging in production, without exposing values
-console.log('Supabase URL available:', !!supabaseUrl);
-
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase URL or anon key. Please check your environment variables.');
 }
@@ -29,13 +26,13 @@ export interface UMCLocation {
   district: string;            // District name
   city: string;                // City
   state: string;               // State
+  zip?: string;                // ZIP/Postal code
   status: string;              // Status of the property
   address: string;             // Full address
   details: any;                // JSON with additional details
   // Additional fields needed for the map but not in the DB schema
   latitude?: number;           // For mapping
   longitude?: number;          // For mapping
-  land_area?: number;          // Square footage
 }
 
 export interface QualifiedCensusTract {
@@ -107,12 +104,12 @@ const NASHVILLE_CHURCHES = [
 function generateDummyLocations() {
   const nashvilleCenter = { lat: 36.1627, lng: -86.7816 };
   const locations = [];
-  
+
   // Add the known Nashville churches
   for (const church of NASHVILLE_CHURCHES) {
     locations.push(church);
   }
-  
+
   // Generate a few random locations around Nashville
   for (let i = 0; i < 10; i++) {
     // Random offset between -0.1 and 0.1 degrees (roughly 6-7 miles)
@@ -124,34 +121,104 @@ function generateDummyLocations() {
       lng: nashvilleCenter.lng + lngOffset
     });
   }
-  
+
   return locations;
 }
 
 // Note: We removed the geocoding and delay functions since we're now using
 // only hardcoded data for simplicity and reliability
 
+// Interface for map bounds parameters
+export interface MapBounds {
+  north: number; // Maximum latitude
+  south: number; // Minimum latitude
+  east: number;  // Maximum longitude
+  west: number;  // Minimum longitude
+}
+
 // Utility functions for data fetching
-export async function fetchUMCLocations(minLandArea?: number): Promise<UMCLocation[]> {
-  console.log('Using Nashville fallback data directly without geocoding');
-  
-  // Skip the geocoding process entirely and use our fallback data
-  const fallbackLocations = createFallbackUMCLocations();
-  
-  // Apply minLandArea filter if provided
-  if (minLandArea) {
-    return fallbackLocations.filter(loc => loc.land_area && loc.land_area >= minLandArea);
+export async function fetchUMCLocations(
+  bounds?: MapBounds
+): Promise<UMCLocation[]> {
+  try {
+    // Fetch UMC locations from database
+
+    // Build the query with filters
+    let query = supabase
+      .from('umc_locations')
+      .select('gcfa, url, name, conference, district, city, state, status, address, latitude, longitude, details')
+      .not('latitude', 'is', null);
+
+    // Apply map bounds filters if provided
+    if (bounds) {
+      // Filter locations within the visible map bounds
+      query = query
+        .gte('latitude', bounds.south)
+        .lte('latitude', bounds.north)
+        .gte('longitude', bounds.west)
+        .lte('longitude', bounds.east);
+
+      // Filter by map bounds
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      // Fall back to dummy data if database query fails
+      const fallbackLocations = createFallbackUMCLocations(bounds);
+      return fallbackLocations;
+    }
+
+    // Get raw data from database result
+    const rawData = data || [];
+
+    // Convert raw database results to UMCLocation objects
+    const filteredData: UMCLocation[] = rawData.map(location => {
+      // Create a new UMCLocation object with all properties from the database result
+      const umcLocation: UMCLocation = {
+        gcfa: location.gcfa,
+        url: location.url,
+        name: location.name,
+        conference: location.conference,
+        district: location.district,
+        city: location.city,
+        state: location.state,
+        status: location.status,
+        address: location.address,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        details: location.details
+      };
+
+      return umcLocation;
+    });
+
+    // Retrieved UMC locations after filtering
+    return filteredData;
+  } catch (error) {
+    // Handle unexpected error in fetchUMCLocations
+    // Fall back to dummy data if an unexpected error occurs
+    const fallbackLocations = createFallbackUMCLocations(bounds);
+    return fallbackLocations;
   }
-  
-  return fallbackLocations;
 }
 
 // Create fallback UMC locations using the dummy data
-function createFallbackUMCLocations(): UMCLocation[] {
+function createFallbackUMCLocations(bounds?: MapBounds): UMCLocation[] {
   const dummyLocations = generateDummyLocations();
-  
+
+  // Filter by bounds if provided
+  const filteredLocations = bounds
+    ? dummyLocations.filter(loc =>
+        loc.lat >= bounds.south &&
+        loc.lat <= bounds.north &&
+        loc.lng >= bounds.west &&
+        loc.lng <= bounds.east
+      )
+    : dummyLocations;
+
   // Convert the dummy locations to UMCLocation objects
-  return dummyLocations.map((loc, index) => ({
+  return filteredLocations.map((loc, index) => ({
     gcfa: 1000 + index,
     url: '',
     name: loc.name,
@@ -163,16 +230,19 @@ function createFallbackUMCLocations(): UMCLocation[] {
     address: '123 Main St',
     details: {},
     latitude: loc.lat,
-    longitude: loc.lng,
-    land_area: 10000 + Math.floor(Math.random() * 90000) // Random land area between 10,000 and 100,000 sq ft
+    longitude: loc.lng
   }));
 }
 
-export async function fetchQualifiedCensusTracts(): Promise<QualifiedCensusTract[]> {
+export async function fetchQualifiedCensusTracts(bounds?: MapBounds): Promise<QualifiedCensusTract[]> {
   try {
-    // Use raw SQL to query from the postgis schema
-    const { data, error } = await supabase
-      .rpc('get_qualified_census_tracts_data');
+    // Call the SQL function with map bounds parameters (once deployed to Supabase)
+    const { data, error } = await supabase.rpc('get_qualified_census_tracts_data', bounds ? {
+      north: bounds.north,
+      south: bounds.south,
+      east: bounds.east,
+      west: bounds.west
+    } : {});
 
     if (error) {
       console.error('Error fetching Qualified Census Tracts:', error);
@@ -186,11 +256,15 @@ export async function fetchQualifiedCensusTracts(): Promise<QualifiedCensusTract
   }
 }
 
-export async function fetchDifficultDevelopmentAreas(): Promise<DifficultDevelopmentArea[]> {
+export async function fetchDifficultDevelopmentAreas(bounds?: MapBounds): Promise<DifficultDevelopmentArea[]> {
   try {
-    // Use raw SQL to query from the postgis schema
-    const { data, error } = await supabase
-      .rpc('get_difficult_development_areas_data');
+    // Call the SQL function with map bounds parameters (once deployed to Supabase)
+    const { data, error } = await supabase.rpc('get_difficult_development_areas_data', bounds ? {
+      north: bounds.north,
+      south: bounds.south,
+      east: bounds.east,
+      west: bounds.west
+    } : {});
 
     if (error) {
       console.error('Error fetching Difficult Development Areas:', error);

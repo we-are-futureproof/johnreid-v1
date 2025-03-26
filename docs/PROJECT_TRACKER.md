@@ -1,7 +1,7 @@
 # UMC Property Analysis Map - Project Tracker
 
 ## Project Overview
-A web application that overlays Qualified Census Tracts (QCT) and Difficult Development Areas (DDA) with United Methodist Church (UMC) locations, filters properties by land area, and incorporates Area Median Income (AMI) data from HUD for market targeting.
+A web application that overlays Qualified Census Tracts (QCT) and Difficult Development Areas (DDA) with United Methodist Church (UMC) locations, and incorporates Area Median Income (AMI) data from HUD for market targeting.
 
 ## Key Terms
 - **QCT**: Qualified Census Tract - Census tracts designated by HUD where 50% or more of households have incomes below 60% of the Area Median Gross Income
@@ -12,9 +12,8 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 
 ## Project Requirements
 1. Overlay QCT/DDA Zones with UMC Locations
-2. Filter results based upon land area of UMC property
-3. Utilize Low-Mod Income data to help target specific markets
-4. Ensure reliable geocoding for UMC locations in the Nashville area
+2. Utilize Low-Mod Income data to help target specific markets
+3. Ensure reliable geocoding for UMC locations in the Nashville area
 
 ## Project Roadmap
 
@@ -42,7 +41,6 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 - [x] Implement property information display
 
 ### Phase 4: Filtering and Analysis Features
-- [x] Implement land area filtering
 - [x] Implement UMC location geocoding (frontend fallback)
 - [x] Implement batch geocoding system for database
 - [x] Create filtering UI components
@@ -54,6 +52,7 @@ A web application that overlays Qualified Census Tracts (QCT) and Difficult Deve
 - [x] Add user-friendly controls
 - [ ] Implement accessibility features
 - [x] Optimize performance
+- [x] Improve map interaction handling for overlays
 - [ ] Add helpful tooltips and instructions
 
 ### Phase 6: Testing and Deployment
@@ -78,14 +77,18 @@ The application has a functional map displaying UMC locations in the Nashville a
 
 The batch geocoding system includes robust error handling, memory management for large datasets, detailed progress reporting, and database integration.
 
+Recent improvements include proper map click handling for QCT and DDA zones with an interactive layers approach, removal of placeholder land area data, and optimization of Mapbox telemetry to reduce console errors.
+
 ## Key Achievements
 1. **Optimized Supabase Queries**: Implemented spatial filtering for QCT and DDA zones to improve performance and prevent timeouts
 2. **Comprehensive Geocoding Solution**: Developed a dual-approach geocoding system with:
    - A batch processing system for the full UMC database with Mapbox API integration
    - A Nashville-focused frontend fallback system for reliable map display
-3. **Interactive Map**: Created an interactive map with layer toggles and property filtering by land area
-4. **Mobile-Responsive Design**: Built a responsive UI that works well on various screen sizes
-5. **Memory-Efficient Processing**: Implemented strategies for handling large datasets with optimized memory usage
+3. **Interactive Map**: Created an interactive map with layer toggles and property filtering
+4. **Memory-Efficient Processing**: Implemented strategies for handling large datasets with optimized memory usage
+5. **Improved Map Interactions**: Implemented proper map click handling for QCT and DDA zones using Mapbox interactiveLayerIds
+6. **Data Integrity**: Removed placeholder land area data to ensure only verified information is displayed
+7. **Performance Optimization**: Configured Mapbox to reduce telemetry and tracking requests
 
 ## Next Steps
 1. Test the application with more real-world data
@@ -93,3 +96,5 @@ The batch geocoding system includes robust error handling, memory management for
 3. Add search functionality for specific UMC properties
 4. Implement additional filtering options and data visualization
 5. Develop a UI for manual verification and correction of low-confidence geocoding results
+6. Collect and integrate accurate land area data when available
+7. Further optimize Mapbox configuration to enhance performance

@@ -1,6 +1,6 @@
 # UMC Property Analysis Map
 
-A web application that overlays Qualified Census Tracts (QCT) and Difficult Development Areas (DDA) with United Methodist Church (UMC) locations, filters properties by land area, and incorporates Low-Mod Income data for market targeting.
+A web application that overlays Qualified Census Tracts (QCT) and Difficult Development Areas (DDA) with United Methodist Church (UMC) locations, and incorporates Low-Mod Income data for market targeting.
 
 ## Project Overview
 
@@ -14,11 +14,13 @@ This application helps analyze UMC properties in relation to various federal hou
 - Interactive map displaying UMC property locations
 - Overlay of Qualified Census Tracts (QCT) zones
 - Overlay of Difficult Development Areas (DDA) zones
-- Property filtering based on land area
 - Integration with Low-Mod Income data
 - Detailed property information display
 - Reliable geocoding with Nashville-area fallback data
 - Performance-optimized spatial queries
+- Improved map interaction with proper feature click handling
+- Data integrity with verified information only
+- Optimized telemetry configuration for better performance
 
 ## Technology Stack
 
