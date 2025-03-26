@@ -19,7 +19,10 @@ import {
 } from '../lib/supabase';
 
 // Get Mapbox token from environment variables
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+
+// Log for debugging in production (without exposing the key)
+console.log('Mapbox token available:', !!MAPBOX_TOKEN);
 
 // Layer styles
 const qctLayerStyle: LayerProps = {
