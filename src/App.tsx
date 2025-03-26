@@ -1,5 +1,8 @@
 import './index.css'
-import MapComponent from './components/Map'
+import { lazy, Suspense } from 'react'
+
+// Dynamic import for Map component
+const MapComponent = lazy(() => import('./components/Map'))
 
 function App() {
   // We'll use loading state in the future when we implement data loading indicators
@@ -29,6 +32,7 @@ function App() {
       </header>
 
       <main className="flex-grow relative">
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center">Loading map...</div>}>
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
             <div className="text-center">
@@ -39,6 +43,7 @@ function App() {
         ) : null}
         
         <MapComponent />
+        </Suspense>
       </main>
 
       <footer className="bg-gray-100 p-4 border-t border-gray-200">
