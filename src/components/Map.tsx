@@ -195,7 +195,7 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
   }, []);
 
   // Filter properties based on coordinates and status filters
-  const validProperties = properties.filter(p => {
+  const validProperties: UMCLocation[] = properties.filter(p => {
     // Must have valid coordinates
     const hasValidCoordinates = typeof p.latitude === 'number' && typeof p.longitude === 'number';
     
@@ -262,8 +262,7 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
           );
           if (distance < minDistance) {
             minDistance = distance;
-            // TypeScript needs a clear assertion that this is a valid UMCLocation
-            nearestProperty = property as UMCLocation;
+            nearestProperty = property;
           }
         }
       });
@@ -329,7 +328,9 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
     // First priority: UMC Property
     if (nearestProperty) {
       // Set the nearest property as the selected property
-      const propertyId = nearestProperty.gcfa as string | undefined;
+      // Convert the gcfa number to string for cache lookup
+      const umcProperty = nearestProperty as UMCLocation; // Explicit type assertion
+      const propertyId = String(umcProperty.gcfa);
       if (propertyId) {
         const cachedProperty = getPropertyFromCache(propertyId);
         setSelectedProperty(cachedProperty || nearestProperty);
