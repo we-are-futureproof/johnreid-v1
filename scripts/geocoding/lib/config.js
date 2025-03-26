@@ -14,13 +14,23 @@ const __dirname = path.dirname(__filename);
  * @returns {Object} Configuration object
  */
 export function loadConfig(cliArgs = []) {
-  // Check if --all flag is provided
+  // Process CLI arguments
   const processAllRecords = cliArgs.includes('--all');
+  
+  // Check for --limit flag with a number argument
+  let customLimit = null;
+  const limitFlagIndex = cliArgs.findIndex(arg => arg === '--limit');
+  if (limitFlagIndex !== -1 && limitFlagIndex < cliArgs.length - 1) {
+    const limitValue = parseInt(cliArgs[limitFlagIndex + 1], 10);
+    if (!isNaN(limitValue) && limitValue > 0) {
+      customLimit = limitValue;
+    }
+  }
   
   // Default configuration with conservative settings
   const defaultConfig = {
     processing: {
-      max_records: processAllRecords ? 0 : 100, // 0 = no limit when --all flag is used, otherwise 100
+      max_records: processAllRecords ? 0 : (customLimit !== null ? customLimit : 100), // Use custom limit if provided, 0 for --all, otherwise 100
       batch_size: 20,   // Process in batches of 20
       max_concurrent: 5 // Process 5 batches concurrently
     },
@@ -45,9 +55,13 @@ export function loadConfig(cliArgs = []) {
     const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
     console.log('Loaded configuration from geocoding-config.yaml');
     
-    // Override max_records if --all flag is present
+    // Apply CLI overrides
     if (processAllRecords) {
+      // --all flag forces no limit (0)
       config.processing.max_records = 0;
+    } else if (customLimit !== null) {
+      // --limit flag with value
+      config.processing.max_records = customLimit;
     }
     
     return config;

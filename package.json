@@ -9,8 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "vite preview --host --port $PORT",
-    "geocode": "node scripts/geocode-umc-locations.js",
-    "geocode-all": "node scripts/geocode-umc-locations.js --all"
+    "geocode": "node scripts/geocode.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
