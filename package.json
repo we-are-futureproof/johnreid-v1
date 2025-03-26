@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --host --port $PORT"
+    "start": "vite preview --host --port $PORT",
+    "geocode": "node scripts/geocode-umc-locations.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
@@ -16,7 +17,10 @@
     "@supabase/supabase-js": "^2.49.3",
     "@tailwindcss/postcss": "^4.0.16",
     "autoprefixer": "^10.4.15",
+    "dotenv": "^16.4.7",
+    "js-yaml": "^4.1.0",
     "mapbox-gl": "^3.10.0",
+    "node-fetch": "2",
     "postcss": "^8.4.31",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
