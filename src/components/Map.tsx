@@ -82,21 +82,51 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
     east: -85.7816,  // Eastern bound for Nashville area
     west: -87.7816   // Western bound for Nashville area
   });
-  const [viewState, setViewState] = useState({
-    longitude: -86.7816,  // Nashville, TN
-    latitude: 36.1627,
-    zoom: 9.5  // Closer zoom to show Nashville metro area
+  const [viewState, setViewState] = useState(() => {
+    const savedViewState = localStorage.getItem('umc-map-view');
+    if (savedViewState) {
+      try {
+        return JSON.parse(savedViewState);
+      } catch (e) {
+        console.error('Failed to parse saved map view state:', e);
+      }
+    }
+    // Default to Nashville if no saved state
+    return {
+      longitude: -86.7816,  // Nashville, TN
+      latitude: 36.1627,
+      zoom: 9.5  // Closer zoom to show Nashville metro area
+    };
   });
   
   // State to track current map style
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/light-v11');
-  const [showQCT, setShowQCT] = useState(true);
-  const [showDDA, setShowDDA] = useState(true);
+  const [mapStyle, setMapStyle] = useState(() => {
+    const savedStyle = localStorage.getItem('umc-map-style');
+    return savedStyle || 'mapbox://styles/mapbox/light-v11';
+  });
+  const [showQCT, setShowQCT] = useState(() => {
+    const saved = localStorage.getItem('umc-show-qct');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showDDA, setShowDDA] = useState(() => {
+    const saved = localStorage.getItem('umc-show-dda');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   // Track which type of item is currently in focus
   const [focusType, setFocusType] = useState<'property' | 'qct' | 'dda' | null>(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(filterPanelConfig.startCollapsed);
-  const [isBlinking, setIsBlinking] = useState(false); // Track when to show blinking effect
+  const [isBlinking, setIsBlinking] = useState(false);
+  
+  // Property filter states
+  const [showActiveProperties, setShowActiveProperties] = useState(() => {
+    const saved = localStorage.getItem('umc-show-active');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showClosedProperties, setShowClosedProperties] = useState(() => {
+    const saved = localStorage.getItem('umc-show-closed');
+    return saved !== null ? saved === 'true' : false;
+  }); // Track when to show blinking effect
   const [statusMessages, setStatusMessages] = useState<string[]>([]);
   const messageRemovalTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -164,10 +194,20 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
     return () => clearTimeout(closeTimer);
   }, []);
 
-  // Filter out properties without coordinates
-  const validProperties = properties.filter(p =>
-    typeof p.latitude === 'number' &&
-    typeof p.longitude === 'number');
+  // Filter properties based on coordinates and status filters
+  const validProperties = properties.filter(p => {
+    // Must have valid coordinates
+    const hasValidCoordinates = typeof p.latitude === 'number' && typeof p.longitude === 'number';
+    
+    // Apply status filters
+    const matchesStatusFilter = 
+      (p.status?.toLowerCase() === 'active' && showActiveProperties) || 
+      (p.status?.toLowerCase() === 'closed' && showClosedProperties) ||
+      // Include properties with undefined or other status values regardless of filters
+      (p.status?.toLowerCase() !== 'active' && p.status?.toLowerCase() !== 'closed');
+    
+    return hasValidCoordinates && matchesStatusFilter;
+  });
 
   // Update map bounds when map is moved
   const updateMapBounds = () => {
@@ -448,11 +488,15 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
 
   // Toggle layer visibility
   const toggleQCTLayer = () => {
-    setShowQCT(!showQCT);
+    const newValue = !showQCT;
+    setShowQCT(newValue);
+    localStorage.setItem('umc-show-qct', String(newValue));
   };
 
   const toggleDDALayer = () => {
-    setShowDDA(!showDDA);
+    const newValue = !showDDA;
+    setShowDDA(newValue);
+    localStorage.setItem('umc-show-dda', String(newValue));
   };
 
   // Fly to a specific property
@@ -497,8 +541,15 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
       <Map
         ref={mapRef}
         {...viewState}
-        onMove={(evt: { viewState: any }) => setViewState(evt.viewState)}
-        onMoveEnd={updateMapBounds}
+        onMove={(evt: { viewState: any }) => {
+          setViewState(evt.viewState);
+          // Don't save every minor move, use a debounced save on move end
+        }}
+        onMoveEnd={(evt: any) => {
+          updateMapBounds();
+          // Save the current view state to localStorage
+          localStorage.setItem('umc-map-view', JSON.stringify(evt.viewState));
+        }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
         interactiveLayerIds={[...(showQCT ? ['qct-layer'] : []), ...(showDDA ? ['dda-layer'] : [])]}
@@ -514,9 +565,13 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
         {/* Satellite View Toggle */}
         <div className="absolute left-4 bottom-24 z-50">
           <button 
-            onClick={() => setMapStyle(mapStyle.includes('satellite') ? 
-              'mapbox://styles/mapbox/light-v11' : 
-              'mapbox://styles/mapbox/satellite-streets-v12')}
+            onClick={() => {
+              const newStyle = mapStyle.includes('satellite') ? 
+                'mapbox://styles/mapbox/light-v11' : 
+                'mapbox://styles/mapbox/satellite-streets-v12';
+              setMapStyle(newStyle);
+              localStorage.setItem('umc-map-style', newStyle);
+            }}
             className="bg-white py-3 px-4 rounded-lg shadow-xl border-2 border-blue-500 flex items-center space-x-3 hover:bg-blue-50 transition-colors"
             title={mapStyle.includes('satellite') ? 'Switch to street view' : 'Switch to satellite view'}
           >
@@ -659,8 +714,7 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
 
       {/* Left side drawer panel */}
       <div className={`drawer-side-left ${isPanelCollapsed ? 'collapsed' : ''}`}>
-
-        <div className="p-4 h-full overflow-y-auto">
+        <div className="p-4 h-full flex flex-col" style={{ overflow: 'hidden' }}>
           <h2 className="text-xl font-bold mb-4">Map Controls</h2>
 
           <div className="mb-4">
@@ -686,15 +740,54 @@ export default function MapComponent({ searchLocation }: MapComponentProps) {
               </label>
             </div>
           </div>
+          
+          {/* Property Filters Section */}
+          <div className="mb-4 mt-6">
+            <h3 className="font-semibold mb-2">Property Filters</h3>
+            <div className="flex flex-col space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showActiveProperties}
+                  onChange={(e) => {
+                    setShowActiveProperties(e.target.checked);
+                    localStorage.setItem('umc-show-active', String(e.target.checked));
+                  }}
+                  className="mr-2"
+                />
+                <span className="flex items-center">
+                  <span className="inline-block w-3 h-3 bg-green-600 rounded-full mr-2"></span>
+                  Active Properties
+                </span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showClosedProperties}
+                  onChange={(e) => {
+                    setShowClosedProperties(e.target.checked);
+                    localStorage.setItem('umc-show-closed', String(e.target.checked));
+                  }}
+                  className="mr-2"
+                />
+                <span className="flex items-center">
+                  <span className="inline-block w-3 h-3 bg-red-600 rounded-full mr-2"></span>
+                  Closed Properties
+                </span>
+              </label>
+            </div>
+          </div>
 
           {/* Properties Section - increased padding above */}
-          <div className="mt-8 pt-4 border-t border-gray-200">
-            <h3 className="font-semibold mb-2">Properties ({properties.length})</h3>
+          <div className="mt-6 pt-4 border-t border-gray-200 flex-grow flex flex-col">
+            <h3 className="font-semibold mb-2">Properties ({validProperties.length})</h3>
             {/* Full-height scrollable container with permanent scrollbar */}
             <div
-              className="overflow-y-scroll"
+              className="overflow-y-auto flex-grow"
               style={{
-                height: 'calc(100vh - 275px)', /* Adjust to leave room for header and layers */
+                flex: 1, 
+                height: '100%',
+                maxHeight: 'calc(100vh - 350px)',
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#cbd5e0 #f7fafc',
               }}
