@@ -219,3 +219,16 @@ The other type of change occurs infrequently. The values of the low/mod data are
 Question: Can I get LOWMOD data at the block level?
 
 Answer: The low/mod data is calculated at the split block group level, specifically at the Census SF3 SUMLEV 090 level. The low/mod data cannot be generated at the block level because income data is not available at the block level.
+
+
+
+## UMC Locations Geocoding Report
+
+| Status    | Count | Percentage |
+|-----------|-------|------------|
+| Active    | 20666 | 48.59%     |
+| Closed    | 20797 | 48.89%     |
+| Processed | 41463 | 97.48%     |
+| Skipped   | 1072  | 2.52%      |
+| Pending   | 0     | 0.00%      |
+| **Total** | 42535 | 100.00%    |

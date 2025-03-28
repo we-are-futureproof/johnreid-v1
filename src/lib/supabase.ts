@@ -33,6 +33,9 @@ export interface UMCLocation {
   // Additional fields needed for the map but not in the DB schema
   latitude?: number;           // For mapping
   longitude?: number;          // For mapping
+  // Property enrichment fields
+  viable?: boolean;            // Property viability based on lot size
+  smarty?: any;                // Complete Smarty API response
 }
 
 export interface QualifiedCensusTract {
@@ -198,7 +201,7 @@ export async function fetchUMCLocations(
     // If cache miss or expired, fetch from database
     let query = supabase
       .from('umc_locations')
-      .select('gcfa, url, name, conference, district, city, state, status, address, latitude, longitude, details')
+      .select('gcfa, url, name, conference, district, city, state, status, address, latitude, longitude, details, viable, smarty')
       .not('latitude', 'is', null);
 
     // Apply map bounds filters if provided with padding to improve cache hit rate
