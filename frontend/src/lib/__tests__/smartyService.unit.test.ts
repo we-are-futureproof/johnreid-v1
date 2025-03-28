@@ -56,13 +56,7 @@ describe('smartyService', () => {
   });
   
   describe('enrichProperty', () => {
-    // Store the original implementation
-    let originalEnrichProperty: any;
-    
     beforeEach(() => {
-      // Store original implementation before tests
-      originalEnrichProperty = smartyService.enrichProperty;
-      
       // Setup spy with conditional behavior
       vi.spyOn(smartyService, 'enrichProperty').mockImplementation((key: string) => {
         // Return enrichmentResponse for test-smarty-key-123
