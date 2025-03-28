@@ -238,7 +238,7 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
       console.log('Making API request to Smarty...');
       const response = await fetch(url.toString(), {
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`
         }
       });
       console.log('API response received:', {
@@ -345,7 +345,7 @@ export async function enrichProperty(smartyKey: string): Promise<SmartyPropertyE
       // Make API request
       const response = await fetch(url.toString(), {
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`
         }
       });
 
