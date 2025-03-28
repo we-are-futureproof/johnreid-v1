@@ -6,12 +6,15 @@ import { UMCLocation } from './supabase';
 // With the server proxy setup, we no longer need to manage credentials in client-side code
 // The credentials are now handled securely in the Vite server proxy
 
-console.log('Smarty service initialized - using secure server proxy for API calls.');
+// Smarty service using secure server proxy for API calls
 
 
-// Minimum lot size in square feet (4.5 acres ≈ 196,020 sq ft)
-const MIN_VIABLE_LOT_SQFT = 200000;
+// Conversion constants
+const SQFT_PER_ACRE = 43560;
+
+// Minimum viable acreage and square footage thresholds
 const MIN_VIABLE_ACRES = 4.5;
+const MIN_VIABLE_LOT_SQFT = MIN_VIABLE_ACRES * SQFT_PER_ACRE;  // 4.5 acres ≈ 196,020 sq ft
 
 // Types for Smarty API responses
 interface SmartyAddressValidationResponse {
@@ -117,22 +120,11 @@ const DEBOUNCE_INTERVAL = 5000; // 5 seconds debounce interval
  * @returns Promise with validation response
  */
 export async function validateAddress(location: UMCLocation): Promise<SmartyAddressValidationResponse | null> {
-  console.log('validateAddress called for:', {
-    gcfa: location.gcfa,
-    name: location.name,
-    address: location.address,
-    city: location.city,
-    state: location.state
-  });
-
   // Check if location has necessary address components
   if (!location.address || !location.city || !location.state) {
     console.error('Location missing required address components:', location.gcfa);
     return null;
   }
-
-  // Using secure server-side proxy for API calls
-  console.log('Using Smarty API via secure proxy');
 
   // Create request key for debouncing
   const requestKey = `validate_${location.gcfa}`;
@@ -144,7 +136,6 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
   if (trackerEntry && (now - trackerEntry.lastRequestTime) < DEBOUNCE_INTERVAL) {
     // Return existing promise if it's still pending
     if (trackerEntry.pendingPromise) {
-      console.log(`Returning cached promise for ${requestKey}`);
       return trackerEntry.pendingPromise;
     }
   }
@@ -215,10 +206,7 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
                     .replace(/\s+/g, ' ')
                     .trim();
 
-      console.log('Parsed street address:', {
-        original: location.address,
-        parsed: street
-      });
+
 
       url.searchParams.append('street', street);
       url.searchParams.append('city', location.city);
@@ -226,39 +214,27 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
       url.searchParams.append('candidates', '1');
       url.searchParams.append('match', 'enhanced');
 
-      const fullUrl = url.toString();
-      console.log(`Validating address for ${location.name} (GCFA: ${location.gcfa})`);
-
-      // Create a properly redacted URL for logging
-      const redactedUrl = new URL(fullUrl);
-      redactedUrl.searchParams.set('auth-token', 'REDACTED');
-      console.log('API request URL:', redactedUrl.toString());
 
       // Make API request
-      console.log('Making API request to Smarty...');
       const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`
         }
       });
-      console.log('API response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
+
 
       if (!response.ok) {
         throw new Error(`Address validation failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('API response data:', JSON.stringify(data).substring(0, 500) + '...');
+
 
       // Smarty returns an array of candidates
       if (Array.isArray(data) && data.length > 0) {
         // The smarty_key can be directly on the response object or in the metadata
         const smartyKey = data[0].smarty_key || data[0].metadata?.smarty_key;
-        console.log('Found address match with smarty_key:', smartyKey);
+
 
         // Make sure we preserve the smarty_key in the expected format for downstream functions
         if (smartyKey && !data[0].metadata) {
@@ -284,15 +260,11 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
       try {
         // Check both general network connectivity and our local proxy
         fetch('https://www.google.com')
-          .then(response => {
-            console.log('General network connectivity check:', response.ok ? 'Success' : 'Failed');
-
+          .then(() => {
             // Also test our proxy endpoint
             return fetch('/api/smarty', { method: 'HEAD' });
           })
-          .then(response => {
-            console.log('Proxy endpoint accessibility check:', response.ok ? 'Success' : 'Failed');
-          })
+          .then(() => {})
           .catch(e => {
             console.error('Network connectivity check failed:', e);
           });
@@ -337,7 +309,6 @@ export async function enrichProperty(smartyKey: string): Promise<SmartyPropertyE
   if (trackerEntry && (now - trackerEntry.lastRequestTime) < DEBOUNCE_INTERVAL) {
     // Return existing promise if it's still pending
     if (trackerEntry.pendingPromise) {
-      console.log(`Returning cached promise for ${requestKey}`);
       return trackerEntry.pendingPromise;
     }
   }
@@ -350,7 +321,7 @@ export async function enrichProperty(smartyKey: string): Promise<SmartyPropertyE
       // No need to append auth credentials - handled securely by the edge function
       const url = new URL(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/smarty-property-enrichment/lookup/${smartyKey}/property/principal`, window.location.origin);
 
-      console.log(`Enriching property with smarty_key: ${smartyKey}`);
+
 
       // Make API request
       const response = await fetch(url.toString(), {
@@ -398,8 +369,6 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
     return undefined;
   }
 
-  console.log('Property data type:', Array.isArray(propertyData) ? 'array' : typeof propertyData);
-  
   // Handle the case where propertyData is an array (from Supabase Edge Function)
   const data = Array.isArray(propertyData) ? propertyData[0] : propertyData;
   
@@ -407,9 +376,6 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
     console.warn('No property data found after normalization');
     return undefined;
   }
-  
-  // Log the structure for debugging
-  console.log('Property data structure:', JSON.stringify(data).substring(0, 200) + '...');
   
   // Extract lot size information - handle both possible data structures
   // The structure might be nested in attributes (Edge Function response)
@@ -421,12 +387,20 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
     // New structure from Edge Function - values are strings in 'attributes'
     lotSizeAcres = data.attributes.acres ? parseFloat(data.attributes.acres) : undefined;
     lotSizeSqft = data.attributes.lot_sqft ? parseFloat(data.attributes.lot_sqft) : undefined;
-    console.log('Found lot size in attributes:', { acres: lotSizeAcres, sqft: lotSizeSqft });
   } else {
     // Original structure - values are numbers directly on the object
     lotSizeAcres = data.lot_size_acres;
     lotSizeSqft = data.lot_size_sqft;
-    console.log('Found lot size in root object:', { acres: lotSizeAcres, sqft: lotSizeSqft });
+  }
+  
+  // If we have square footage but not acreage, calculate acreage
+  if (!lotSizeAcres && lotSizeSqft) {
+    lotSizeAcres = lotSizeSqft / SQFT_PER_ACRE;
+  }
+  
+  // If we have acreage but not square footage, calculate square footage
+  if (!lotSizeSqft && lotSizeAcres) {
+    lotSizeSqft = lotSizeAcres * SQFT_PER_ACRE;
   }
 
   // Check if we have lot size data
@@ -437,12 +411,10 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
 
   // Evaluate viability based on available data
   if (lotSizeAcres !== undefined && lotSizeAcres >= MIN_VIABLE_ACRES) {
-    console.log(`Property is viable: ${lotSizeAcres} acres >= ${MIN_VIABLE_ACRES} acres threshold`);
     return true;
   }
-
+  
   if (lotSizeSqft !== undefined && lotSizeSqft >= MIN_VIABLE_LOT_SQFT) {
-    console.log(`Property is viable: ${lotSizeSqft} sq ft >= ${MIN_VIABLE_LOT_SQFT} sq ft threshold`);
     return true;
   }
 
@@ -461,20 +433,10 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
  * @returns Updated location with viability and Smarty data
  */
 export async function processUMCLocation(location: UMCLocation): Promise<UMCLocation> {
-  console.log('processUMCLocation called for:', {
-    gcfa: location.gcfa,
-    name: location.name,
-    status: location.status,
-    viable: location.viable,
-  });
-
   // Skip processing if not active or location has already been processed
   if (location.status?.toLowerCase() !== 'active' || (location.viable !== undefined && location.viable !== null)) {
-    console.log('Skipping processing - inactive or already processed');
     return location;
   }
-
-  console.log('Property eligible for enrichment, proceeding with API calls');
 
   try {
     // Step 1: Validate address to get smarty_key
@@ -528,7 +490,7 @@ export async function processUMCLocation(location: UMCLocation): Promise<UMCLoca
  */
 export async function testBasicConnectivity(): Promise<{success: boolean, message: string}> {
   try {
-    console.log('Testing basic connectivity to public endpoint...');
+
     const response = await fetch('https://httpbin.org/get');
     const data = await response.json();
     return {
@@ -545,8 +507,6 @@ export async function testBasicConnectivity(): Promise<{success: boolean, messag
 
 export async function testSmartyApiConnectivity(): Promise<{success: boolean, message: string}> {
   try {
-    console.log('Testing Smarty API connectivity...');
-
     // Use local proxy for the test request
     // Create simple test URL using our secure proxy
     const url = new URL('/api/smarty/street-address', window.location.origin);
@@ -554,15 +514,9 @@ export async function testSmartyApiConnectivity(): Promise<{success: boolean, me
     url.searchParams.append('city', 'Mountain View');
     url.searchParams.append('state', 'CA');
     url.searchParams.append('candidates', '1');
-
-    console.log('Making test request to Smarty API...');
     const response = await fetch(url.toString());
 
-    console.log('Test response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
+
 
     if (!response.ok) {
       return {
@@ -608,7 +562,7 @@ export async function updateLocationInDatabase(location: UMCLocation): Promise<b
       return false;
     }
 
-    console.log(`Successfully updated location ${location.name} (GCFA: ${location.gcfa}) with enrichment data`);
+    // Location successfully updated with enrichment data
     return true;
   } catch (error) {
     console.error('Unexpected error updating location:', error);

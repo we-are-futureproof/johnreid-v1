@@ -233,6 +233,7 @@ export default function MapContainer({ searchLocation }: MapComponentProps) {
           isProcessingEnrichment={isProcessingEnrichment}
           setIsProcessingEnrichment={setIsProcessingEnrichment}
           addStatusMessage={addStatusMessage}
+          setProperties={setProperties}
         />
       </Map>
 
