@@ -1,50 +1,24 @@
 {
-  "name": "umc-v1",
+  "name": "umc-property-mapping",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "start": "vite preview --host --port $PORT",
-    "geocode": "node scripts/geocode.js"
-  },
-  "dependencies": {
-    "@headlessui/react": "^2.2.0",
-    "@heroicons/react": "^2.2.0",
-    "@supabase/supabase-js": "^2.49.3",
-    "@tailwindcss/postcss": "^4.0.16",
-    "autoprefixer": "^10.4.15",
-    "chalk": "^5.4.1",
-    "dotenv": "^16.4.7",
-    "js-yaml": "^4.1.0",
-    "mapbox-gl": "^3.10.0",
-    "node-fetch": "2",
-    "postcss": "^8.4.31",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0",
-    "react-map-gl": "^7.1.6",
-    "react-router-dom": "^7.4.0",
-    "tailwindcss": "^3.3.3"
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "lint": "pnpm --filter frontend lint",
+    "preview": "pnpm --filter frontend preview",
+    "start": "pnpm --filter frontend start",
+    "setup:supabase": "supabase init",
+    "deploy:functions": "cd supabase && supabase functions deploy"
   },
   "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@types/mapbox-gl": "^3.4.1",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.21.0",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^15.15.0",
-    "typescript": "~5.7.2",
-    "typescript-eslint": "^8.24.1",
-    "vite": "^6.2.0"
+    "supabase": "^1.142.1"
   },
   "pnpm": {
+    "overrides": {
+      "esbuild": "^0.20.0"
+    },
     "onlyBuiltDependencies": [
       "esbuild"
     ]

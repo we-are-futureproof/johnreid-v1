@@ -35,6 +35,7 @@ export interface UMCLocation {
   longitude?: number;          // For mapping
   // Property enrichment fields
   viable?: boolean;            // Property viability based on lot size
+  smarty_key?: string;         // Smarty Key from address validation for property enrichment
   smarty?: any;                // Complete Smarty API response
 }
 

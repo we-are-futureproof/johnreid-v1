@@ -4,7 +4,20 @@ This document tracks the implementation progress of the UMC Property Enrichment 
 
 ## Recent Updates
 
-### March 28, 2025: Map Component Refactoring
+### March 28, 2025 (PM): Monorepo Refactoring and Function Deployment
+- [x] Restructured project into a monorepo format
+  - [x] Moved frontend code to a dedicated `/frontend` directory
+  - [x] Created `/supabase/functions` directory for edge functions
+  - [x] Set up PNPM workspace configuration
+- [x] Fixed environment variables configuration
+  - [x] Moved `.env` and `.env.example` to the frontend directory
+  - [x] Added `VITE_SUPABASE_FUNCTIONS_URL` for proper function calls
+- [x] Successfully deployed Supabase Edge Functions
+  - [x] `smarty-address-validation` function deployed
+  - [x] `smarty-property-enrichment` function deployed
+- [x] Updated documentation with deployment process details
+
+### March 28, 2025 (AM): Map Component Refactoring
 - [x] Completed extensive refactoring of the Map component code to improve maintainability
 - [x] Extracted functionality into modular components:
   - [x] `MapLayers`: Handling QCT and DDA layer rendering
@@ -49,6 +62,29 @@ This refactoring provides a cleaner foundation for completing the UMC Property E
 - [x] Add function to update property data with Smarty enrichment results
 
 ### 5. Security & API Integration
+- [x] Create Supabase edge functions to securely handle Smarty API calls
+  - [x] `smarty-address-validation`: Function for address validation and obtaining the smarty_key
+  - [x] `smarty-property-enrichment`: Function for property enrichment using the smarty_key
+- [x] Update frontend code to use Supabase edge functions instead of Vite proxy
+- [x] Add proper CORS handling to edge functions
+- [x] Environment variable management for secure credential handling
+  - [x] Frontend environment variables:
+    - `VITE_SUPABASE_URL`: Supabase project URL
+    - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous API key
+    - `VITE_SUPABASE_FUNCTIONS_URL`: URL for Supabase edge functions
+    - `VITE_MAPBOX_ACCESS_TOKEN`: Mapbox API key
+  - [x] Supabase edge function environment variables:
+    - `SMARTY_AUTH_ID`: Smarty API authentication ID
+    - `SMARTY_AUTH_TOKEN`: Smarty API authentication token
+
+### 6. Project Structure Refactoring
+- [x] Restructure project into a monorepo format
+  - [x] Move frontend code to a dedicated `/frontend` directory
+  - [x] Create `/supabase/functions` directory for edge functions
+  - [x] Set up PNPM workspace configuration
+  - [x] Update documentation and examples for the new structure
+- [x] Add `smarty_key` field to database schema for better data management
+- [x] Update TypeScript interfaces to include the new field
 - [x] Implement secure server-side proxy for Smarty API in vite.config.ts
 - [x] Remove browser-identifying headers to prevent API security errors
 - [x] Add server-like headers to make requests appear server-originated
@@ -56,10 +92,26 @@ This refactoring provides a cleaner foundation for completing the UMC Property E
 - [x] Configure proxy to always include `match=enhanced` parameter for obtaining `smarty_key`
 - [x] Test successful retrieval of `smarty_key` via secure proxy
 
-### 6. Testing & Validation
+### 7. Deployment Configuration
+- [x] Configure build process for the monorepo structure
+  - [x] Update root package.json with workspace scripts
+  - [x] Fix PNPM workspace configuration for proper build process
+- [x] Set up deployment pipeline
+  - [x] Frontend: Deployed to Render.com with automatic deployment on Git push
+  - [x] Supabase Edge Functions: Manual deployment with `pnpm deploy:functions`
+- [x] Environment variable management for different environments
+  - [x] Updated `.env.example` with all required variables
+  - [x] Documented deployment process in project documentation
+
+### 8. Testing & Validation
 - [x] Test address validation with sample UMC locations
-- [ ] Test property enrichment data retrieval
-- [ ] Validate lot size determination logic
+- [x] Test property enrichment data retrieval
+  - [x] Successfully tested Supabase Edge Functions locally
+  - [x] Verified correct construction of API URLs
+  - [x] Confirmed proper handling of CORS and authentication
+- [x] Validate lot size determination logic
+  - [x] Confirmed properties with 4.5+ acres or 200,000+ sq ft are marked viable
+  - [x] Confirmed smaller properties are marked non-viable
 - [ ] Test UI color coding and interaction behaviors
 - [ ] Test data persistence (enriched properties should maintain status)
 
@@ -108,7 +160,35 @@ This refactoring provides a cleaner foundation for completing the UMC Property E
 ## Next Steps
 
 1. ~~Execute the SQL statements to update the database schema~~ ✅ Done
-2. Test the Smarty API integration with real UMC locations
-3. Verify the color coding of properties based on viability
-4. Monitor API usage and performance
-5. Address any testing issues that arise
+2. ~~Test the Smarty API integration with real UMC locations~~ ✅ Done
+3. ~~Deploy Supabase Edge Functions to production~~ ✅ Done
+   - ~~Run `pnpm deploy:functions` after pushing code changes~~ ✅ Done
+   - ~~Verify functions are accessible in production environment~~ ✅ Done
+4. Push code changes to repository for frontend deployment
+5. Set up environment variables in Render.com for frontend production deployment
+6. Verify the frontend correctly calls the deployed edge functions
+7. Monitor API usage and performance
+8. Address any testing issues that arise
+
+## Deployment Process
+
+### Frontend (Render.com)
+1. Push code changes to the repository
+2. Render.com automatically detects changes and deploys the frontend
+3. Ensure environment variables are configured in Render.com dashboard:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_FUNCTIONS_URL`
+   - `VITE_MAPBOX_ACCESS_TOKEN`
+
+### Supabase Edge Functions
+1. After pushing code changes, manually deploy functions:
+   ```bash
+   pnpm deploy:functions
+   ```
+2. Ensure environment variables are configured in Supabase dashboard:
+   - `SMARTY_AUTH_ID`
+   - `SMARTY_AUTH_TOKEN`
+3. Verify functions are accessible at the expected URL:
+   - `https://[your-project-ref].supabase.co/functions/v1/smarty-address-validation`
+   - `https://[your-project-ref].supabase.co/functions/v1/smarty-property-enrichment`

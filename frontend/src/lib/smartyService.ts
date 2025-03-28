@@ -152,10 +152,10 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
   // Create a new promise for this request
   const requestPromise = new Promise<SmartyAddressValidationResponse | null>(async (resolve) => {
     try {
-      // Build URL using our local proxy
-      // Instead of calling Smarty API directly, we'll use our Vite proxy
-      // No need to append auth credentials - handled securely by the proxy
-      const url = new URL('/api/smarty/street-address', window.location.origin);
+      // Build URL using Supabase edge function
+      // Instead of calling Smarty API directly, we'll use our edge function
+      // No need to append auth credentials - handled securely by the edge function
+      const url = new URL(import.meta.env.VITE_SUPABASE_FUNCTIONS_URL + '/smarty-address-validation', window.location.origin);
       
       // Parse address to extract the street portion (possibly contains city/zip in the field)
       let street = location.address;
@@ -236,7 +236,11 @@ export async function validateAddress(location: UMCLocation): Promise<SmartyAddr
 
       // Make API request
       console.log('Making API request to Smarty...');
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+        }
+      });
       console.log('API response received:', {
         status: response.status,
         statusText: response.statusText,
@@ -331,15 +335,19 @@ export async function enrichProperty(smartyKey: string): Promise<SmartyPropertyE
   // Create a new promise for this request
   const requestPromise = new Promise<SmartyPropertyEnrichmentResponse | null>(async (resolve) => {
     try {
-      // Build URL for property enrichment using our local proxy
-      // Instead of calling Smarty API directly, we'll use our Vite proxy
-      // No need to append auth credentials - handled securely by the proxy
-      const url = new URL(`/api/smarty/lookup/${smartyKey}/property/principal`, window.location.origin);
+      // Build URL for property enrichment using Supabase edge function
+      // Instead of calling Smarty API directly, we'll use our edge function
+      // No need to append auth credentials - handled securely by the edge function
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/smarty-property-enrichment/lookup/${smartyKey}/property/principal`, window.location.origin);
 
       console.log(`Enriching property with smarty_key: ${smartyKey}`);
 
       // Make API request
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`Property enrichment failed: ${response.status} ${response.statusText}`);
@@ -453,6 +461,7 @@ export async function processUMCLocation(location: UMCLocation): Promise<UMCLoca
     // Step 4: Update location with new data
     const updatedLocation = {
       ...location,
+      smarty_key: smartyKey,
       smarty: enrichmentResult,
       viable: isViable
     };
@@ -550,6 +559,7 @@ export async function updateLocationInDatabase(location: UMCLocation): Promise<b
       .from('umc_locations')
       .update({
         viable: location.viable,
+        smarty_key: location.smarty_key,
         smarty: location.smarty
       })
       .eq('gcfa', location.gcfa);
