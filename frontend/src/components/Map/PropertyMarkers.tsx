@@ -154,10 +154,10 @@ const PropertyMarkers: React.FC<PropertyMarkersProps> = ({
               markerConfig.colors.closed // Closed (not evaluated)
             }`}
             title={`${property.name}
-${property.address}, ${property.city}, ${property.state}
-Status: ${property.status}
-Conference: ${property.conference}
-District: ${property.district}${property.viable !== undefined ? '\nViable: ' + (property.viable ? 'Yes (4.5+ acres)' : 'No (< 4.5 acres)') : ''}`}
+
+${property.address}
+
+${property.status ? `Status: ${property.status}` : ''}${property.status?.toLowerCase() === 'active' ? (property.viable !== null && property.viable !== undefined ? '\n\nViable: ' + (property.viable ? 'Yes (4.5+ acres)' : 'No (< 4.5 acres)') : '\n\nViability unknown. Click to check') : ''}`}
           />
         </Marker>
       ))}

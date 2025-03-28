@@ -98,7 +98,9 @@ const MapControls: React.FC<ExtendedMapControlsProps> = ({
                   className="mr-2"
                 />
                 <span className="flex items-center">
-                  <span className="inline-block w-3 h-3 bg-green-600 rounded-full mr-2"></span>
+                  <span className="inline-block w-3 h-3 bg-green-600 rounded-full mr-2" title="Active & Viable"></span>
+                  <span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-2" title="Active & Non-viable"></span>
+                  <span className="inline-block w-3 h-3 bg-blue-600 rounded-full mr-2" title="Active (click for viability check)"></span>
                   Active Properties
                 </span>
               </label>
@@ -113,7 +115,7 @@ const MapControls: React.FC<ExtendedMapControlsProps> = ({
                   className="mr-2"
                 />
                 <span className="flex items-center">
-                  <span className="inline-block w-3 h-3 bg-red-600 rounded-full mr-2"></span>
+                  <span className="inline-block w-3 h-3 bg-gray-400 rounded-full mr-2"></span>
                   Closed Properties
                 </span>
               </label>

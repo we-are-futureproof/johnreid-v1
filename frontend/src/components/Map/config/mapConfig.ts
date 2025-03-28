@@ -23,9 +23,9 @@ export const markerConfig = {
   },
   colors: {
     viable: 'bg-green-600',       // Viable (5+ acres)
-    nonViable: 'bg-gray-500',     // Non-viable (< 5 acres)
+    nonViable: 'bg-red-400',     // Non-viable (< 5 acres)
     active: 'bg-blue-600',        // Active (not evaluated)
-    closed: 'bg-red-600'          // Closed (not evaluated)
+    closed: 'bg-gray-400'          // Closed (not evaluated)
   }
 };
 
