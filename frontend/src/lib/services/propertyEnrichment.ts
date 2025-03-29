@@ -119,34 +119,39 @@ export function evaluatePropertyViability(propertyData: SmartyPropertyEnrichment
 
   // Handle array-based property structure (from edge function)
   if (Array.isArray(propertyData)) {
+    // If empty array, mark as not viable
+    if (propertyData.length === 0) {
+      console.log('Empty array response from Smarty API, marking property as not viable');
+      return false;
+    }
+    
     // Use the first item if available
-    if (propertyData.length > 0) {
-      const item = propertyData[0];
-      
-      // Check if it has attributes with acres or lot_sqft
-      if (item.attributes) {
-        // Check for acres (may be a string or number)
-        if (item.attributes.acres !== undefined) {
-          const acres = parseFloat(String(item.attributes.acres));
-          if (!isNaN(acres)) {
-            return acres >= MIN_VIABLE_ACRES;
-          }
-        }
-        
-        // Check for square feet (may be a string or number)
-        if (item.attributes.lot_sqft !== undefined) {
-          const sqft = parseFloat(String(item.attributes.lot_sqft));
-          if (!isNaN(sqft)) {
-            return sqft >= MIN_VIABLE_LOT_SQFT;
-          }
+    const item = propertyData[0];
+    
+    // Check if it has attributes with acres or lot_sqft
+    if (item.attributes) {
+      // Check for acres (may be a string or number)
+      if (item.attributes.acres !== undefined) {
+        const acres = parseFloat(String(item.attributes.acres));
+        if (!isNaN(acres)) {
+          return acres >= MIN_VIABLE_ACRES;
         }
       }
       
-      // If we couldn't find size but have property_use_type
-      if (item.property_use_type) {
-        return evaluatePropertyTypeViability(item.property_use_type);
+      // Check for square feet (may be a string or number)
+      if (item.attributes.lot_sqft !== undefined) {
+        const sqft = parseFloat(String(item.attributes.lot_sqft));
+        if (!isNaN(sqft)) {
+          return sqft >= MIN_VIABLE_LOT_SQFT;
+        }
       }
     }
+    
+    // If we couldn't find size but have property_use_type
+    if (item.property_use_type) {
+      return evaluatePropertyTypeViability(item.property_use_type);
+    }
+    
     return undefined;
   }
 

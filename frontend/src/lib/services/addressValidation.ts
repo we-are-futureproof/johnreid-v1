@@ -15,7 +15,13 @@ const DEBOUNCE_INTERVAL = 5000; // 5 seconds debounce interval
  * @param location UMC location to validate
  * @returns Promise with validation response
  */
-export async function validateAddress(location: UMCLocation): Promise<SmartyAddressValidationResponse | null> {
+export async function validateAddress(location: UMCLocation | null | undefined): Promise<SmartyAddressValidationResponse | null> {
+  // Check if location is null or undefined
+  if (!location) {
+    console.error('Null or undefined location provided to validateAddress');
+    return null;
+  }
+  
   // Check if location has necessary address components
   if (!location.address || !location.city || !location.state) {
     console.error('Location missing required address components:', location.gcfa);

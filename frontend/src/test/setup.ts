@@ -34,6 +34,16 @@ vi.stubGlobal('import', {
 
 // Create MSW server for API mocking
 export const server = setupServer(
+  // Network connectivity check handlers
+  http.head('*/api/smarty', () => {
+    return HttpResponse.json({ status: 'ok' })
+  }),
+  
+  // Handle the google.com connectivity check
+  http.get('https://www.google.com', () => {
+    return HttpResponse.json({ status: 'ok' })
+  }),
+  
   // Default handlers with 404 response - specific handlers will be added in individual test files
   http.get('*', () => {
     return HttpResponse.json({ message: 'Not Found' }, { status: 404 })
