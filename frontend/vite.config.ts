@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: Number(process.env.PORT) || 5173,
       // Allow Render.com hostname
-      allowedHosts: ['johnreid-umc-v1.onrender.com', '.onrender.com']
+      allowedHosts: ['johnreid-v1.onrender.com', 'johnreid-v2.onrender.com', '.onrender.com']
     },
     build: {
       // Increase the warning limit to avoid unnecessary warnings
