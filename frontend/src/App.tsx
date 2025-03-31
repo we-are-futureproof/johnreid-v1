@@ -1,6 +1,6 @@
 import './index.css'
 import { lazy, Suspense, useState } from 'react'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
+import { HashRouter as Router, Route, Routes } from 'react-router-dom'
 import SearchBox from './components/SearchBox'
 
 // Dynamic import for Map component
@@ -22,7 +22,7 @@ function About() {
       {/* Main content with overlay */}
       <div className="relative z-10 max-w-6xl mx-auto px-8 py-12">
         {/* Back button */}
-        <a href="/" className="text-blue-700 hover:text-blue-900 mb-8 inline-flex items-center font-medium transition-colors">
+        <a href="/#/" className="text-blue-700 hover:text-blue-900 mb-8 inline-flex items-center font-medium transition-colors">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
           </svg>
@@ -138,7 +138,7 @@ function App() {
               Dashboard
             </a>
             <a
-              href="/about"
+              href="/#/about"
               className="text-gray-300 hover:text-white transition-colors text-lg font-medium whitespace-nowrap"
             >
               About
