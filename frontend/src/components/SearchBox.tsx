@@ -51,28 +51,28 @@ export default function SearchBox({ onLocationSelect }: SearchBoxProps) {
   };
 
   return (
-    <div className="relative w-80 text-gray-900">
+    <div className="relative w-full text-gray-900">
       <div className="relative flex items-center">
         <input
           ref={inputRef}
           type="text"
           placeholder="Search for a location..."
-          className="px-10 py-2 w-full rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+          className="px-10 py-2 md:py-2.5 lg:py-3 xl:py-3.5 w-full rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base lg:text-lg"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
         />
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <FaSearch className="text-gray-400" />
+          <FaSearch className="text-gray-400 text-sm md:text-base lg:text-lg" />
         </div>
         {isLoading && (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-            <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
+            <div className="animate-spin h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 border-2 border-gray-500 border-t-transparent rounded-full"></div>
           </div>
         )}
       </div>
       {error && (
-        <div className="absolute mt-1 text-sm text-red-600">{error}</div>
+        <div className="absolute mt-1 text-sm md:text-base text-red-600">{error}</div>
       )}
     </div>
   );
